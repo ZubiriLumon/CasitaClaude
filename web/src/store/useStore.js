@@ -223,6 +223,25 @@ const useStore = create(
     }),
     {
       name: 'casita-claude-storage',
+      version: 2,
+      migrate: (persisted, version) => {
+        if (version < 2) {
+          // v2: income categories now have sections + business categories updated for brownies
+          return {
+            ...persisted,
+            incomeCategories: [
+              ...defaultPersonalIncomeCategories.map((c, i) => ({ ...c, id: genId(), section: 'personal', sortOrder: i })),
+              ...defaultBusinessIncomeCategories.map((c, i) => ({ ...c, id: genId(), section: 'business', sortOrder: i })),
+            ],
+            categories: [
+              ...defaultPersonalCategories.map((c, i) => ({ ...c, id: genId(), section: 'personal', sortOrder: i })),
+              ...defaultBusinessCategories.map((c, i) => ({ ...c, id: genId(), section: 'business', sortOrder: i })),
+            ],
+            recurringIncomes: persisted.recurringIncomes || [],
+          };
+        }
+        return persisted;
+      },
     }
   )
 );
