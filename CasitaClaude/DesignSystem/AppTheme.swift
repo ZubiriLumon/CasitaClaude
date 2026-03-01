@@ -9,14 +9,14 @@ enum SectionMode: String, CaseIterable, Codable {
     var displayName: String {
         switch self {
         case .personal: return "Vida Personal"
-        case .business: return "Negocios"
+        case .business: return "Brownies"
         }
     }
 
     var icon: String {
         switch self {
         case .personal: return "person.fill"
-        case .business: return "briefcase.fill"
+        case .business: return "cup.and.saucer.fill"
         }
     }
 }

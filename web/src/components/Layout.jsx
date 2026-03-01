@@ -5,16 +5,19 @@ import { playPop, playBadge } from '../services/sounds';
 import Icon from './Icon';
 import Dashboard from './Dashboard';
 import ExpenseList from './ExpenseList';
+import IncomeList from './IncomeList';
 import BudgetList from './BudgetList';
 import MonthlyReport from './MonthlyReport';
 import Profile from './Profile';
 import Settings from './Settings';
 import AddExpense from './AddExpense';
+import AddIncome from './AddIncome';
 import Confetti from './Confetti';
 
-const navItems = [
+const baseNavItems = [
   { id: 'dashboard', label: 'Inicio', icon: 'Home' },
   { id: 'expenses', label: 'Gastos', icon: 'Receipt' },
+  { id: 'income', label: 'Ingresos', icon: 'TrendingUp', businessOnly: true },
   { id: 'budget', label: 'Límites', icon: 'Gauge' },
   { id: 'reports', label: 'Reportes', icon: 'BarChart3' },
   { id: 'profile', label: 'Perfil', icon: 'User' },
@@ -24,8 +27,10 @@ const navItems = [
 export default function Layout() {
   const [page, setPage] = useState('dashboard');
   const [showAddExpense, setShowAddExpense] = useState(false);
+  const [showAddIncome, setShowAddIncome] = useState(false);
   const { section, setSection, feedback, recentBadge, clearRecentBadge } = useStore();
   const colors = t(section);
+  const navItems = baseNavItems.filter((item) => !item.businessOnly || section === 'business');
 
   useEffect(() => {
     if (recentBadge) playBadge();
@@ -43,13 +48,14 @@ export default function Layout() {
 
   const renderPage = () => {
     switch (page) {
-      case 'dashboard': return <Dashboard onAddExpense={() => setShowAddExpense(true)} />;
+      case 'dashboard': return <Dashboard onAddExpense={() => setShowAddExpense(true)} onAddIncome={() => setShowAddIncome(true)} />;
       case 'expenses': return <ExpenseList onAddExpense={() => setShowAddExpense(true)} />;
+      case 'income': return <IncomeList onAddIncome={() => setShowAddIncome(true)} />;
       case 'budget': return <BudgetList />;
       case 'reports': return <MonthlyReport />;
       case 'profile': return <Profile />;
       case 'settings': return <Settings />;
-      default: return <Dashboard onAddExpense={() => setShowAddExpense(true)} />;
+      default: return <Dashboard onAddExpense={() => setShowAddExpense(true)} onAddIncome={() => setShowAddIncome(true)} />;
     }
   };
 
@@ -85,8 +91,8 @@ export default function Layout() {
             }}
             onClick={() => handleSectionToggle('business')}
           >
-            <Icon name="Briefcase" size={15} />
-            <span className="nav-text">Negocios</span>
+            <Icon name="Cookie" size={15} />
+            <span className="nav-text">Brownies</span>
           </button>
         </div>
 
@@ -106,8 +112,21 @@ export default function Layout() {
           </button>
         ))}
 
-        {/* Add expense button */}
-        <div style={{ marginTop: 'auto', padding: '12px 0' }}>
+        {/* Add buttons */}
+        <div style={{ marginTop: 'auto', padding: '12px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {section === 'business' && (
+            <button
+              className="btn btn-primary btn-full"
+              style={{
+                background: `linear-gradient(135deg, ${colors.success}, #10B981)`,
+                boxShadow: `0 4px 16px ${colors.success}30`,
+              }}
+              onClick={() => setShowAddIncome(true)}
+            >
+              <Icon name="TrendingUp" size={18} />
+              <span className="nav-text">Nueva Venta</span>
+            </button>
+          )}
           <button
             className="btn btn-primary btn-full"
             style={{
@@ -129,6 +148,9 @@ export default function Layout() {
 
       {/* Add Expense Modal */}
       {showAddExpense && <AddExpense onClose={() => setShowAddExpense(false)} />}
+
+      {/* Add Income Modal */}
+      {showAddIncome && <AddIncome onClose={() => setShowAddIncome(false)} />}
 
       {/* Feedback Toast */}
       {feedback && (

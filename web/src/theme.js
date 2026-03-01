@@ -47,16 +47,25 @@ export const defaultPersonalCategories = [
 ];
 
 export const defaultBusinessCategories = [
-  { name: 'Nómina', icon: 'Users', color: '#0F766E' },
-  { name: 'Renta/Oficina', icon: 'Building2', color: '#14B8A6' },
-  { name: 'Marketing', icon: 'Megaphone', color: '#F59E0B' },
-  { name: 'Software/Tech', icon: 'Laptop', color: '#6366F1' },
-  { name: 'Proveedores', icon: 'Package', color: '#D97706' },
+  { name: 'Ingredientes', icon: 'Egg', color: '#D97706' },
+  { name: 'Chocolate', icon: 'Cookie', color: '#78350F' },
+  { name: 'Empaque', icon: 'Package', color: '#14B8A6' },
+  { name: 'Delivery/Envíos', icon: 'Truck', color: '#3B82F6' },
+  { name: 'Gas/Electricidad', icon: 'Zap', color: '#F59E0B' },
+  { name: 'Marketing', icon: 'Megaphone', color: '#8B5CF6' },
+  { name: 'Equipo de Cocina', icon: 'ChefHat', color: '#0F766E' },
+  { name: 'Renta/Local', icon: 'Building2', color: '#6366F1' },
   { name: 'Impuestos', icon: 'FileText', color: '#DC2626' },
-  { name: 'Serv. Profesionales', icon: 'Briefcase', color: '#8B5CF6' },
-  { name: 'Viáticos', icon: 'Plane', color: '#3B82F6' },
-  { name: 'Inventario', icon: 'Box', color: '#10B981' },
   { name: 'Otros', icon: 'MoreHorizontal', color: '#6B7280' },
+];
+
+export const defaultIncomeCategories = [
+  { name: 'Venta Individual', icon: 'ShoppingBag', color: '#059669' },
+  { name: 'Pedidos Especiales', icon: 'Star', color: '#D97706' },
+  { name: 'Ventas por Mayor', icon: 'Package', color: '#0F766E' },
+  { name: 'Eventos/Ferias', icon: 'PartyPopper', color: '#8B5CF6' },
+  { name: 'Delivery', icon: 'Truck', color: '#3B82F6' },
+  { name: 'Otros Ingresos', icon: 'MoreHorizontal', color: '#6B7280' },
 ];
 
 export const paymentMethods = [

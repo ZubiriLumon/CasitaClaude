@@ -4,8 +4,8 @@ import { currentPeriod, previousPeriod, formatPeriod, daysRemaining, totalDays }
 import { generateTips, tipColors } from '../services/tipsEngine';
 import Icon from './Icon';
 
-export default function Dashboard({ onAddExpense }) {
-  const { section, profile, getExpensesForPeriod, getCategoriesForSection, getGlobalBudget } = useStore();
+export default function Dashboard({ onAddExpense, onAddIncome }) {
+  const { section, profile, getExpensesForPeriod, getCategoriesForSection, getGlobalBudget, getIncomesForPeriod } = useStore();
   const colors = t(section);
   const period = currentPeriod(profile.billingCycleStartDay);
   const prevPeriod = previousPeriod(profile.billingCycleStartDay);
@@ -20,6 +20,12 @@ export default function Dashboard({ onAddExpense }) {
   // Previous period
   const prevExpenses = getExpensesForPeriod(prevPeriod.start, prevPeriod.end);
   const prevTotal = prevExpenses.reduce((s, e) => s + e.amount, 0);
+
+  // Income (business section)
+  const incomes = section === 'business' ? getIncomesForPeriod(period.start, period.end) : [];
+  const totalIncome = incomes.reduce((s, i) => s + i.amount, 0);
+  const profit = totalIncome - totalSpent;
+  const totalBrownies = incomes.reduce((s, i) => s + (i.quantity || 0), 0);
 
   // Category spending
   const catSpending = {};
@@ -129,6 +135,49 @@ export default function Dashboard({ onAddExpense }) {
               <span style={{ fontSize: 12, color: colors.textSecondary }}>{formatMoney(totalSpent)}</span>
               <span style={{ fontSize: 12, color: colors.textSecondary }}>{formatMoney(budget.amount)}</span>
             </div>
+          </div>
+        )}
+
+        {/* Business Income Summary */}
+        {section === 'business' && (
+          <div className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <span style={{ fontSize: 15, fontWeight: 700, color: colors.text }}>Resumen de Ventas</span>
+              <button
+                className="btn btn-sm"
+                style={{ background: colors.success, color: '#fff', fontSize: 12 }}
+                onClick={onAddIncome}
+              >
+                <Icon name="Plus" size={14} /> Venta
+              </button>
+            </div>
+            <div className="grid-3">
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ fontSize: 11, color: colors.textSecondary, fontWeight: 500 }}>Ingresos</p>
+                <p style={{ fontSize: 18, fontWeight: 800, color: colors.success }}>
+                  {formatMoney(totalIncome)}
+                </p>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ fontSize: 11, color: colors.textSecondary, fontWeight: 500 }}>Gastos</p>
+                <p style={{ fontSize: 18, fontWeight: 800, color: colors.danger }}>
+                  {formatMoney(totalSpent)}
+                </p>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ fontSize: 11, color: colors.textSecondary, fontWeight: 500 }}>Ganancia</p>
+                <p style={{ fontSize: 18, fontWeight: 800, color: profit >= 0 ? colors.success : colors.danger }}>
+                  {formatMoney(profit)}
+                </p>
+              </div>
+            </div>
+            {totalBrownies > 0 && (
+              <div style={{ textAlign: 'center', marginTop: 12, padding: '8px 0', borderTop: '1px solid rgba(0,0,0,0.05)' }}>
+                <span style={{ fontSize: 13, color: colors.textSecondary }}>
+                  <Icon name="Cookie" size={14} color={colors.accent} /> {totalBrownies} brownies vendidos este ciclo
+                </span>
+              </div>
+            )}
           </div>
         )}
 

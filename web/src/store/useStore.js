@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { defaultPersonalCategories, defaultBusinessCategories, badgeDefinitions } from '../theme';
+import { defaultPersonalCategories, defaultBusinessCategories, defaultIncomeCategories, badgeDefinitions } from '../theme';
 
 const genId = () => crypto.randomUUID();
 
@@ -44,14 +44,29 @@ const useStore = create(
         }).sort((a, b) => new Date(b.date) - new Date(a.date));
       },
 
+      // --- Income Categories ---
+      incomeCategories: defaultIncomeCategories.map((c, i) => ({ ...c, id: genId(), sortOrder: i })),
+      getIncomeCategories: () => {
+        return get().incomeCategories.sort((a, b) => a.sortOrder - b.sortOrder);
+      },
+
       // --- Incomes (business) ---
       incomes: [],
-      addIncome: (inc) => set((st) => ({ incomes: [...st.incomes, { ...inc, id: genId() }] })),
+      addIncome: (inc) => {
+        const id = genId();
+        const income = { ...inc, id, createdAt: new Date().toISOString() };
+        set((st) => ({ incomes: [...st.incomes, income] }));
+        get().addXP(15);
+        get().updateStreak();
+        get().checkBadges();
+        return income;
+      },
+      deleteIncome: (id) => set((st) => ({ incomes: st.incomes.filter((i) => i.id !== id) })),
       getIncomesForPeriod: (start, end) => {
         return get().incomes.filter((i) => {
           const d = new Date(i.date);
           return d >= start && d <= end;
-        });
+        }).sort((a, b) => new Date(b.date) - new Date(a.date));
       },
 
       // --- Budgets ---

@@ -51,15 +51,26 @@ final class Category {
     // MARK: - Default Business Categories
 
     static let defaultBusiness: [(String, String, String)] = [
-        ("Nómina", "person.2.fill", "0F766E"),
-        ("Renta/Oficina", "building.2.fill", "14B8A6"),
-        ("Marketing", "megaphone.fill", "F59E0B"),
-        ("Software/Tech", "laptopcomputer", "6366F1"),
-        ("Proveedores", "shippingbox.fill", "D97706"),
+        ("Ingredientes", "basket.fill", "D97706"),
+        ("Chocolate", "cup.and.saucer.fill", "78350F"),
+        ("Empaque", "shippingbox.fill", "14B8A6"),
+        ("Delivery/Envíos", "box.truck.fill", "3B82F6"),
+        ("Gas/Electricidad", "bolt.fill", "F59E0B"),
+        ("Marketing", "megaphone.fill", "8B5CF6"),
+        ("Equipo de Cocina", "frying.pan.fill", "0F766E"),
+        ("Renta/Local", "building.2.fill", "6366F1"),
         ("Impuestos", "doc.text.fill", "DC2626"),
-        ("Servicios Profesionales", "briefcase.fill", "8B5CF6"),
-        ("Viáticos", "airplane", "3B82F6"),
-        ("Inventario", "cube.box.fill", "10B981"),
         ("Otros", "ellipsis.circle.fill", "6B7280"),
+    ]
+
+    // MARK: - Default Income Categories
+
+    static let defaultIncomeCategories: [(String, String, String)] = [
+        ("Venta Individual", "bag.fill", "059669"),
+        ("Pedidos Especiales", "star.fill", "D97706"),
+        ("Ventas por Mayor", "shippingbox.fill", "0F766E"),
+        ("Eventos/Ferias", "party.popper.fill", "8B5CF6"),
+        ("Delivery", "box.truck.fill", "3B82F6"),
+        ("Otros Ingresos", "ellipsis.circle.fill", "6B7280"),
     ]
 }

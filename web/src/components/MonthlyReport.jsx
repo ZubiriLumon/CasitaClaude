@@ -82,7 +82,7 @@ export default function MonthlyReport() {
         </div>
         <h2 style={{ color: colors.text }}>Cierre de Ciclo</h2>
         <p style={{ color: colors.textSecondary }}>
-          {section === 'personal' ? 'Vida Personal' : 'Negocios'}
+          {section === 'personal' ? 'Vida Personal' : 'Brownies'}
         </p>
       </div>
 
