@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { defaultPersonalCategories, defaultBusinessCategories, defaultIncomeCategories, badgeDefinitions } from '../theme';
+import { defaultPersonalCategories, defaultBusinessCategories, defaultPersonalIncomeCategories, defaultBusinessIncomeCategories, badgeDefinitions } from '../theme';
 
 const genId = () => crypto.randomUUID();
 
@@ -45,12 +45,56 @@ const useStore = create(
       },
 
       // --- Income Categories ---
-      incomeCategories: defaultIncomeCategories.map((c, i) => ({ ...c, id: genId(), sortOrder: i })),
-      getIncomeCategories: () => {
-        return get().incomeCategories.sort((a, b) => a.sortOrder - b.sortOrder);
+      incomeCategories: [
+        ...defaultPersonalIncomeCategories.map((c, i) => ({ ...c, id: genId(), section: 'personal', sortOrder: i })),
+        ...defaultBusinessIncomeCategories.map((c, i) => ({ ...c, id: genId(), section: 'business', sortOrder: i })),
+      ],
+      getIncomeCategories: (section) => {
+        const s = section || get().section;
+        return get().incomeCategories.filter((c) => c.section === s).sort((a, b) => a.sortOrder - b.sortOrder);
       },
 
-      // --- Incomes (business) ---
+      // --- Recurring Incomes ---
+      recurringIncomes: [],
+      addRecurringIncome: (rec) => {
+        const id = genId();
+        set((st) => ({ recurringIncomes: [...st.recurringIncomes, { ...rec, id }] }));
+      },
+      deleteRecurringIncome: (id) => set((st) => ({ recurringIncomes: st.recurringIncomes.filter((r) => r.id !== id) })),
+      applyRecurringIncomes: (periodStart, periodEnd) => {
+        const st = get();
+        const section = st.section;
+        const recs = st.recurringIncomes.filter((r) => r.section === section);
+        const existing = st.incomes;
+        const newIncomes = [];
+
+        for (const rec of recs) {
+          // Check if already applied this period
+          const alreadyApplied = existing.some(
+            (i) => i.recurringId === rec.id && new Date(i.date) >= periodStart && new Date(i.date) <= periodEnd
+          );
+          if (!alreadyApplied) {
+            newIncomes.push({
+              id: genId(),
+              amount: rec.amount,
+              description: rec.description,
+              source: rec.source,
+              incomeCategoryId: rec.incomeCategoryId,
+              section: rec.section,
+              date: new Date(periodStart.getTime() + (rec.dayOfMonth - 1) * 86400000).toISOString(),
+              recurring: true,
+              recurringId: rec.id,
+              createdAt: new Date().toISOString(),
+            });
+          }
+        }
+
+        if (newIncomes.length > 0) {
+          set((st) => ({ incomes: [...st.incomes, ...newIncomes] }));
+        }
+      },
+
+      // --- Incomes ---
       incomes: [],
       addIncome: (inc) => {
         const id = genId();
@@ -62,10 +106,11 @@ const useStore = create(
         return income;
       },
       deleteIncome: (id) => set((st) => ({ incomes: st.incomes.filter((i) => i.id !== id) })),
-      getIncomesForPeriod: (start, end) => {
+      getIncomesForPeriod: (start, end, section) => {
+        const s = section || get().section;
         return get().incomes.filter((i) => {
           const d = new Date(i.date);
-          return d >= start && d <= end;
+          return i.section === s && d >= start && d <= end;
         }).sort((a, b) => new Date(b.date) - new Date(a.date));
       },
 

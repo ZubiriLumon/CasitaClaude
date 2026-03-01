@@ -59,7 +59,16 @@ export const defaultBusinessCategories = [
   { name: 'Otros', icon: 'MoreHorizontal', color: '#6B7280' },
 ];
 
-export const defaultIncomeCategories = [
+export const defaultPersonalIncomeCategories = [
+  { name: 'Nómina', icon: 'Landmark', color: '#059669' },
+  { name: 'Freelance', icon: 'Laptop', color: '#6366F1' },
+  { name: 'Transferencias', icon: 'ArrowLeftRight', color: '#3B82F6' },
+  { name: 'Regalos', icon: 'Gift', color: '#EC4899' },
+  { name: 'Inversiones', icon: 'TrendingUp', color: '#0F766E' },
+  { name: 'Otros Ingresos', icon: 'MoreHorizontal', color: '#6B7280' },
+];
+
+export const defaultBusinessIncomeCategories = [
   { name: 'Venta Individual', icon: 'ShoppingBag', color: '#059669' },
   { name: 'Pedidos Especiales', icon: 'Star', color: '#D97706' },
   { name: 'Ventas por Mayor', icon: 'Package', color: '#0F766E' },

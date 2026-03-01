@@ -14,10 +14,10 @@ import AddExpense from './AddExpense';
 import AddIncome from './AddIncome';
 import Confetti from './Confetti';
 
-const baseNavItems = [
+const navItems = [
   { id: 'dashboard', label: 'Inicio', icon: 'Home' },
   { id: 'expenses', label: 'Gastos', icon: 'Receipt' },
-  { id: 'income', label: 'Ingresos', icon: 'TrendingUp', businessOnly: true },
+  { id: 'income', label: 'Ingresos', icon: 'TrendingUp' },
   { id: 'budget', label: 'Límites', icon: 'Gauge' },
   { id: 'reports', label: 'Reportes', icon: 'BarChart3' },
   { id: 'profile', label: 'Perfil', icon: 'User' },
@@ -30,7 +30,6 @@ export default function Layout() {
   const [showAddIncome, setShowAddIncome] = useState(false);
   const { section, setSection, feedback, recentBadge, clearRecentBadge } = useStore();
   const colors = t(section);
-  const navItems = baseNavItems.filter((item) => !item.businessOnly || section === 'business');
 
   useEffect(() => {
     if (recentBadge) playBadge();
@@ -114,19 +113,17 @@ export default function Layout() {
 
         {/* Add buttons */}
         <div style={{ marginTop: 'auto', padding: '12px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {section === 'business' && (
-            <button
-              className="btn btn-primary btn-full"
-              style={{
-                background: `linear-gradient(135deg, ${colors.success}, #10B981)`,
-                boxShadow: `0 4px 16px ${colors.success}30`,
-              }}
-              onClick={() => setShowAddIncome(true)}
-            >
-              <Icon name="TrendingUp" size={18} />
-              <span className="nav-text">Nueva Venta</span>
-            </button>
-          )}
+          <button
+            className="btn btn-primary btn-full"
+            style={{
+              background: `linear-gradient(135deg, ${colors.success}, #10B981)`,
+              boxShadow: `0 4px 16px ${colors.success}30`,
+            }}
+            onClick={() => setShowAddIncome(true)}
+          >
+            <Icon name="TrendingUp" size={18} />
+            <span className="nav-text">{section === 'business' ? 'Nueva Venta' : 'Nuevo Ingreso'}</span>
+          </button>
           <button
             className="btn btn-primary btn-full"
             style={{

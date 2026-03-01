@@ -1,17 +1,24 @@
 import useStore from '../store/useStore';
 import { t, formatMoney } from '../theme';
 import { currentPeriod, formatPeriod } from '../services/periodService';
-import { playDelete } from '../services/sounds';
+import { playDelete, playPop } from '../services/sounds';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Icon from './Icon';
 
 export default function IncomeList({ onAddIncome }) {
-  const { profile, getIncomesForPeriod, getIncomeCategories, deleteIncome } = useStore();
-  const colors = t('business');
+  const { section, profile, getIncomesForPeriod, getIncomeCategories, deleteIncome, recurringIncomes, deleteRecurringIncome, applyRecurringIncomes } = useStore();
+  const colors = t(section);
+  const isBusiness = section === 'business';
   const incomeCategories = getIncomeCategories();
   const period = currentPeriod(profile.billingCycleStartDay);
   const incomes = getIncomesForPeriod(period.start, period.end);
+
+  // Apply recurring incomes on mount
+  applyRecurringIncomes(period.start, period.end);
+
+  // Section recurring incomes
+  const sectionRecurring = recurringIncomes.filter((r) => r.section === section);
 
   // Group by date
   const grouped = {};
@@ -22,12 +29,19 @@ export default function IncomeList({ onAddIncome }) {
   });
 
   const totalIncome = incomes.reduce((s, i) => s + i.amount, 0);
-  const totalBrownies = incomes.reduce((s, i) => s + (i.quantity || 0), 0);
+  const totalBrownies = isBusiness ? incomes.reduce((s, i) => s + (i.quantity || 0), 0) : 0;
 
   function handleDelete(id) {
     if (window.confirm('¿Eliminar este ingreso?')) {
       playDelete();
       deleteIncome(id);
+    }
+  }
+
+  function handleDeleteRecurring(id) {
+    if (window.confirm('¿Eliminar este ingreso recurrente? Ya no se registrará automáticamente.')) {
+      playDelete();
+      deleteRecurringIncome(id);
     }
   }
 
@@ -41,7 +55,7 @@ export default function IncomeList({ onAddIncome }) {
             style={{ background: `linear-gradient(135deg, ${colors.success}, #10B981)`, boxShadow: `0 3px 12px ${colors.success}25` }}
             onClick={onAddIncome}
           >
-            <Icon name="Plus" size={16} /> Nueva Venta
+            <Icon name="Plus" size={16} /> {isBusiness ? 'Nueva Venta' : 'Nuevo Ingreso'}
           </button>
         </div>
         <div className="period-badge" style={{ background: `${colors.success}12`, color: colors.success, marginTop: 8 }}>
@@ -50,21 +64,66 @@ export default function IncomeList({ onAddIncome }) {
         </div>
       </div>
 
+      {/* Recurring Incomes */}
+      {sectionRecurring.length > 0 && (
+        <div style={{ marginBottom: 18 }}>
+          <p style={{ fontSize: 13, fontWeight: 700, color: colors.textSecondary, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Icon name="Repeat" size={14} color={colors.primary} /> Ingresos Recurrentes
+          </p>
+          <div className="card">
+            {sectionRecurring.map((rec) => {
+              const cat = incomeCategories.find((c) => c.id === rec.incomeCategoryId);
+              return (
+                <div key={rec.id} className="expense-row">
+                  <div className="expense-icon" style={{ background: cat?.color || colors.success }}>
+                    <Icon name={cat?.icon || 'Repeat'} size={18} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontWeight: 700, fontSize: 14, color: colors.text }}>
+                      {cat?.name || rec.source || 'Ingreso'}
+                    </p>
+                    <p style={{ fontSize: 12, color: colors.textSecondary }}>
+                      Cada mes, día {rec.dayOfMonth}
+                      {rec.description ? ` — ${rec.description}` : ''}
+                    </p>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <p style={{ fontWeight: 800, fontSize: 15, color: colors.success }}>
+                      +{formatMoney(rec.amount)}
+                    </p>
+                  </div>
+                  <button
+                    className="btn-ghost"
+                    style={{ color: colors.textSecondary, padding: 4 }}
+                    onClick={() => handleDeleteRecurring(rec.id)}
+                    title="Eliminar recurrente"
+                  >
+                    <Icon name="Trash2" size={14} />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {incomes.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px 0' }}>
           <div className="wiggle" style={{ display: 'inline-block' }}>
             <Icon name="TrendingUp" size={52} color={`${colors.textSecondary}30`} />
           </div>
-          <p style={{ color: colors.text, marginTop: 16, fontWeight: 600, fontSize: 16 }}>Sin ventas en este ciclo</p>
+          <p style={{ color: colors.text, marginTop: 16, fontWeight: 600, fontSize: 16 }}>
+            {isBusiness ? 'Sin ventas en este ciclo' : 'Sin ingresos en este ciclo'}
+          </p>
           <p style={{ color: `${colors.textSecondary}99`, marginTop: 4, fontSize: 14 }}>
-            Registra tu primera venta de brownies
+            {isBusiness ? 'Registra tu primera venta de brownies' : 'Registra tu primer ingreso'}
           </p>
           <button
             className="btn btn-primary"
             style={{ background: `linear-gradient(135deg, ${colors.success}, #10B981)`, marginTop: 20, boxShadow: `0 4px 16px ${colors.success}30` }}
             onClick={onAddIncome}
           >
-            <Icon name="Plus" size={16} /> Registrar Venta
+            <Icon name="Plus" size={16} /> {isBusiness ? 'Registrar Venta' : 'Registrar Ingreso'}
           </button>
         </div>
       ) : (
@@ -87,15 +146,20 @@ export default function IncomeList({ onAddIncome }) {
                         <Icon name={cat?.icon || 'TrendingUp'} size={18} />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontWeight: 700, fontSize: 14, color: colors.text }}>
-                          {cat?.name || inc.source || 'Venta'}
-                        </p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <p style={{ fontWeight: 700, fontSize: 14, color: colors.text }}>
+                            {cat?.name || inc.source || 'Ingreso'}
+                          </p>
+                          {inc.recurring && (
+                            <Icon name="Repeat" size={12} color={colors.primary} />
+                          )}
+                        </div>
                         {inc.description && (
                           <p style={{ fontSize: 12, color: colors.textSecondary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {inc.description}
                           </p>
                         )}
-                        {inc.quantity > 0 && (
+                        {isBusiness && inc.quantity > 0 && (
                           <span style={{ fontSize: 11, color: colors.textSecondary, fontWeight: 500 }}>
                             {inc.quantity} brownie{inc.quantity !== 1 ? 's' : ''}
                           </span>
@@ -122,7 +186,7 @@ export default function IncomeList({ onAddIncome }) {
           ))}
 
           {/* Summary */}
-          <div className="grid-2">
+          <div className={isBusiness && totalBrownies > 0 ? 'grid-2' : ''}>
             <div
               className="card"
               style={{
@@ -136,10 +200,10 @@ export default function IncomeList({ onAddIncome }) {
                 +{formatMoney(totalIncome)}
               </p>
               <p style={{ fontSize: 13, color: colors.textSecondary }}>
-                {incomes.length} venta{incomes.length !== 1 ? 's' : ''}
+                {incomes.length} {isBusiness ? 'venta' : 'ingreso'}{incomes.length !== 1 ? 's' : ''}
               </p>
             </div>
-            {totalBrownies > 0 && (
+            {isBusiness && totalBrownies > 0 && (
               <div
                 className="card"
                 style={{

@@ -6,9 +6,10 @@ import Icon from './Icon';
 import Confetti from './Confetti';
 
 export default function AddIncome({ onClose }) {
-  const { addIncome, getIncomeCategories, showFeedback } = useStore();
-  const colors = t('business');
+  const { section, addIncome, addRecurringIncome, getIncomeCategories, showFeedback } = useStore();
+  const colors = t(section);
   const incomeCategories = getIncomeCategories();
+  const isBusiness = section === 'business';
 
   const [step, setStep] = useState(1);
   const [amount, setAmount] = useState('');
@@ -16,12 +17,15 @@ export default function AddIncome({ onClose }) {
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [quantity, setQuantity] = useState('');
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringDay, setRecurringDay] = useState('1');
   const [showConfetti, setShowConfetti] = useState(false);
   const [saved, setSaved] = useState(false);
 
   const amountNum = parseFloat(amount.replace(',', '.')) || 0;
   const selectedCat = incomeCategories.find((c) => c.id === categoryId);
   const quantityNum = parseInt(quantity) || 0;
+  const recurringDayNum = parseInt(recurringDay) || 1;
 
   const canStep1 = amountNum > 0;
   const canStep2 = categoryId != null;
@@ -29,20 +33,33 @@ export default function AddIncome({ onClose }) {
   function handleSave() {
     if (!canStep1 || !canStep2) return;
 
+    // Save the income
     addIncome({
       amount: amountNum,
       description,
       date: new Date(date + 'T12:00:00').toISOString(),
       source: selectedCat?.name || '',
       incomeCategoryId: categoryId,
-      quantity: quantityNum || null,
-      section: 'business',
+      quantity: isBusiness ? (quantityNum || null) : null,
+      section,
     });
+
+    // If recurring, also save the recurring rule
+    if (isRecurring) {
+      addRecurringIncome({
+        amount: amountNum,
+        description,
+        source: selectedCat?.name || '',
+        incomeCategoryId: categoryId,
+        section,
+        dayOfMonth: recurringDayNum,
+      });
+    }
 
     playSuccess();
     setShowConfetti(true);
     setSaved(true);
-    showFeedback('Venta registrada +15 XP');
+    showFeedback(isBusiness ? 'Venta registrada +15 XP' : 'Ingreso registrado +15 XP');
     setTimeout(() => onClose(), 1400);
   }
 
@@ -61,6 +78,17 @@ export default function AddIncome({ onClose }) {
   }
 
   const handleConfettiDone = useCallback(() => setShowConfetti(false), []);
+
+  const titles = {
+    step1: isBusiness ? '¿Cuánto vendiste?' : '¿Cuánto recibiste?',
+    step1sub: isBusiness ? 'Ingresa el monto de la venta' : 'Ingresa el monto del ingreso',
+    step2: isBusiness ? '¿Tipo de venta?' : '¿Tipo de ingreso?',
+    step2sub: 'Selecciona una categoría',
+    savedTitle: isBusiness ? 'Venta Registrada' : 'Ingreso Registrado',
+    saveBtn: isBusiness ? 'Registrar Venta' : 'Registrar Ingreso',
+    summaryLabel: isBusiness ? 'RESUMEN DE VENTA' : 'RESUMEN DE INGRESO',
+    placeholder: isBusiness ? 'Ej: 6 brownies de Nutella para pedido de María' : 'Ej: Nómina quincenal',
+  };
 
   if (saved) {
     return (
@@ -81,7 +109,7 @@ export default function AddIncome({ onClose }) {
               <Icon name="TrendingUp" size={40} color="#fff" />
             </div>
             <h3 className="bounce-in" style={{ color: colors.text, margin: 0, fontSize: 24, fontWeight: 900 }}>
-              Venta Registrada
+              {titles.savedTitle}
             </h3>
             <p className="amount-display" style={{ fontSize: 32, fontWeight: 900, color: colors.success, margin: '12px 0' }}>
               +{formatMoney(amountNum)}
@@ -91,6 +119,11 @@ export default function AddIncome({ onClose }) {
                 <Icon name={selectedCat.icon} size={16} color={selectedCat.color} />
                 <span style={{ color: selectedCat.color, fontWeight: 700 }}>{selectedCat.name}</span>
               </div>
+            )}
+            {isRecurring && (
+              <p style={{ color: colors.primary, fontSize: 12, marginTop: 8, fontWeight: 600 }}>
+                <Icon name="Repeat" size={12} /> Se repetirá cada mes
+              </p>
             )}
             <p style={{ color: colors.textSecondary, fontSize: 13, marginTop: 12 }}>+15 XP</p>
           </div>
@@ -119,10 +152,10 @@ export default function AddIncome({ onClose }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <div>
             <h3 style={{ color: colors.text, margin: 0, fontSize: 22 }}>
-              {step === 1 ? '¿Cuánto vendiste?' : step === 2 ? '¿Tipo de venta?' : 'Detalles (opcional)'}
+              {step === 1 ? titles.step1 : step === 2 ? titles.step2 : 'Detalles (opcional)'}
             </h3>
             <p style={{ fontSize: 13, color: colors.textSecondary, marginTop: 4 }}>
-              {step === 1 ? 'Ingresa el monto de la venta' : step === 2 ? 'Selecciona el tipo de ingreso' : 'Agrega más info si quieres'}
+              {step === 1 ? titles.step1sub : step === 2 ? titles.step2sub : 'Agrega más info si quieres'}
             </p>
           </div>
           <button className="btn-ghost" onClick={onClose} style={{ color: colors.textSecondary }}>
@@ -153,20 +186,24 @@ export default function AddIncome({ onClose }) {
               />
             </div>
 
-            <p style={{ fontSize: 13, color: colors.textSecondary, marginBottom: 12, textAlign: 'center', fontWeight: 600 }}>
-              Cantidad de brownies (opcional)
-            </p>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <input
-                className="input"
-                style={{ maxWidth: 160, textAlign: 'center' }}
-                placeholder="Ej: 12"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                type="text"
-                inputMode="numeric"
-              />
-            </div>
+            {isBusiness && (
+              <>
+                <p style={{ fontSize: 13, color: colors.textSecondary, marginBottom: 12, textAlign: 'center', fontWeight: 600 }}>
+                  Cantidad de brownies (opcional)
+                </p>
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <input
+                    className="input"
+                    style={{ maxWidth: 160, textAlign: 'center' }}
+                    placeholder="Ej: 12"
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                    type="text"
+                    inputMode="numeric"
+                  />
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -204,7 +241,7 @@ export default function AddIncome({ onClose }) {
               </label>
               <input
                 className="input"
-                placeholder="Ej: 6 brownies de Nutella para pedido de María"
+                placeholder={titles.placeholder}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
               />
@@ -216,6 +253,60 @@ export default function AddIncome({ onClose }) {
               <input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
 
+            {/* Recurring toggle */}
+            <div
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '14px 16px', borderRadius: 'var(--radius-sm)',
+                background: isRecurring ? `${colors.primary}08` : 'rgba(0,0,0,0.02)',
+                border: `2px solid ${isRecurring ? colors.primary + '30' : 'transparent'}`,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+              onClick={() => { setIsRecurring(!isRecurring); playPop(); }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Icon name="Repeat" size={18} color={isRecurring ? colors.primary : colors.textSecondary} />
+                <div>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: colors.text }}>Ingreso recurrente</p>
+                  <p style={{ fontSize: 12, color: colors.textSecondary }}>Se registra automáticamente cada mes</p>
+                </div>
+              </div>
+              <div
+                style={{
+                  width: 44, height: 24, borderRadius: 12, padding: 2,
+                  background: isRecurring ? colors.primary : 'rgba(0,0,0,0.12)',
+                  transition: 'background 0.2s ease',
+                }}
+              >
+                <div
+                  style={{
+                    width: 20, height: 20, borderRadius: '50%', background: '#fff',
+                    transform: isRecurring ? 'translateX(20px)' : 'translateX(0)',
+                    transition: 'transform 0.2s ease',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                  }}
+                />
+              </div>
+            </div>
+
+            {isRecurring && (
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: colors.textSecondary, display: 'block', marginBottom: 6 }}>
+                  Día del mes en que se recibe
+                </label>
+                <input
+                  className="input"
+                  style={{ maxWidth: 120 }}
+                  placeholder="1"
+                  value={recurringDay}
+                  onChange={(e) => setRecurringDay(e.target.value)}
+                  type="text"
+                  inputMode="numeric"
+                />
+              </div>
+            )}
+
             {/* Summary */}
             <div
               className="card"
@@ -225,7 +316,7 @@ export default function AddIncome({ onClose }) {
                 border: `2px solid ${colors.success}15`,
               }}
             >
-              <p style={{ fontSize: 12, color: colors.textSecondary, fontWeight: 600, letterSpacing: 0.5 }}>RESUMEN DE VENTA</p>
+              <p style={{ fontSize: 12, color: colors.textSecondary, fontWeight: 600, letterSpacing: 0.5 }}>{titles.summaryLabel}</p>
               <p className="amount-display" style={{ fontSize: 28, fontWeight: 900, color: colors.success, margin: '10px 0', letterSpacing: -1 }}>
                 +{formatMoney(amountNum)}
               </p>
@@ -237,9 +328,14 @@ export default function AddIncome({ onClose }) {
                   <span style={{ fontSize: 14, color: selectedCat.color, fontWeight: 700 }}>{selectedCat.name}</span>
                 </div>
               )}
-              {quantityNum > 0 && (
+              {isBusiness && quantityNum > 0 && (
                 <p style={{ fontSize: 13, color: colors.textSecondary, marginTop: 6 }}>
                   {quantityNum} brownie{quantityNum !== 1 ? 's' : ''}
+                </p>
+              )}
+              {isRecurring && (
+                <p style={{ fontSize: 12, color: colors.primary, marginTop: 6, fontWeight: 600 }}>
+                  <Icon name="Repeat" size={12} /> Cada mes, día {recurringDayNum}
                 </p>
               )}
             </div>
@@ -272,7 +368,7 @@ export default function AddIncome({ onClose }) {
             {step === 3 ? (
               <>
                 <Icon name="TrendingUp" size={18} />
-                Registrar Venta
+                {titles.saveBtn}
               </>
             ) : 'Siguiente'}
           </button>

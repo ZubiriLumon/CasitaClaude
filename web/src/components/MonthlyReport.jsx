@@ -47,8 +47,8 @@ export default function MonthlyReport() {
   const underBudget = budgetCompliance <= 1;
   const changeVsPrev = prevTotal > 0 ? ((totalSpent - prevTotal) / prevTotal) * 100 : 0;
 
-  // Business
-  const incomes = section === 'business' ? getIncomesForPeriod(period.start, period.end) : [];
+  // Income (both sections)
+  const incomes = getIncomesForPeriod(period.start, period.end);
   const totalIncome = incomes.reduce((s, i) => s + i.amount, 0);
   const margin = totalIncome > 0 ? (totalIncome - totalSpent) / totalIncome : null;
 
@@ -57,7 +57,7 @@ export default function MonthlyReport() {
     section, totalSpent, budgetTotal: budget?.amount || 0, prevTotal,
     categorySpending: catSpending, prevCategorySpending: prevCatSpending,
     daysRemaining: 0, totalDays: totalDays(profile.billingCycleStartDay),
-    totalIncome: section === 'business' ? totalIncome : null,
+    totalIncome,
   });
 
   // Insight
@@ -134,30 +134,30 @@ export default function MonthlyReport() {
           )}
         </div>
 
-        {/* Business Metrics */}
-        {section === 'business' && (
-          <div className="card" style={{ textAlign: 'center' }}>
-            <p style={{ fontWeight: 700, fontSize: 16, color: colors.text, marginBottom: 16 }}>
-              Métricas de Negocio
-            </p>
-            <div className="grid-3">
-              <div>
-                <p style={{ fontSize: 12, color: colors.textSecondary }}>Ingresos</p>
-                <p style={{ fontSize: 20, fontWeight: 700, color: colors.success }}>{formatMoney(totalIncome)}</p>
-              </div>
-              <div>
-                <p style={{ fontSize: 12, color: colors.textSecondary }}>Gastos</p>
-                <p style={{ fontSize: 20, fontWeight: 700, color: colors.danger }}>{formatMoney(totalSpent)}</p>
-              </div>
-              <div>
-                <p style={{ fontSize: 12, color: colors.textSecondary }}>Margen</p>
-                <p style={{ fontSize: 20, fontWeight: 700, color: margin != null && margin > 0 ? colors.success : colors.danger }}>
-                  {margin != null ? `${(margin * 100).toFixed(1)}%` : 'N/A'}
-                </p>
-              </div>
+        {/* Income vs Expenses Metrics */}
+        <div className="card" style={{ textAlign: 'center' }}>
+          <p style={{ fontWeight: 700, fontSize: 16, color: colors.text, marginBottom: 16 }}>
+            {section === 'business' ? 'Métricas de Negocio' : 'Ingresos vs Gastos'}
+          </p>
+          <div className="grid-3">
+            <div>
+              <p style={{ fontSize: 12, color: colors.textSecondary }}>Ingresos</p>
+              <p style={{ fontSize: 20, fontWeight: 700, color: colors.success }}>{formatMoney(totalIncome)}</p>
+            </div>
+            <div>
+              <p style={{ fontSize: 12, color: colors.textSecondary }}>Gastos</p>
+              <p style={{ fontSize: 20, fontWeight: 700, color: colors.danger }}>{formatMoney(totalSpent)}</p>
+            </div>
+            <div>
+              <p style={{ fontSize: 12, color: colors.textSecondary }}>
+                {section === 'business' ? 'Margen' : 'Disponible'}
+              </p>
+              <p style={{ fontSize: 20, fontWeight: 700, color: margin != null && margin > 0 ? colors.success : colors.danger }}>
+                {margin != null ? (section === 'business' ? `${(margin * 100).toFixed(1)}%` : formatMoney(totalIncome - totalSpent)) : 'N/A'}
+              </p>
             </div>
           </div>
-        )}
+        </div>
 
         {/* Budget Compliance Ring */}
         {budget && (
