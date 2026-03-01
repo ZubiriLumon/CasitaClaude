@@ -50,30 +50,58 @@ export default function Dashboard({ onAddExpense }) {
   const budgetPct = budget?.amount > 0 ? totalSpent / budget.amount : 0;
   const progressColor = budgetPct > 1 ? colors.danger : budgetPct > 0.85 ? colors.warning : colors.success;
 
+  // Greeting based on time
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Buenos días' : hour < 18 ? 'Buenas tardes' : 'Buenas noches';
+
   return (
     <div>
       <div className="page-header">
-        <h2 style={{ color: colors.text }}>
-          {section === 'personal' ? 'Vida Personal' : 'Negocios'}
-        </h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <h2 style={{ color: colors.text }}>
+            {greeting}{profile.displayName ? `, ${profile.displayName}` : ''}
+          </h2>
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
-          <div className="period-badge" style={{ background: `${colors.primary}15`, color: colors.primary }}>
+          <div className="period-badge" style={{ background: `${colors.primary}12`, color: colors.primary }}>
             <Icon name="Calendar" size={14} />
             {formatPeriod(period.start, period.end)}
           </div>
-          <span style={{ fontSize: 13, color: colors.textSecondary }}>{daysLeft} días restantes</span>
+          <span style={{ fontSize: 13, color: colors.textSecondary, fontWeight: 500 }}>
+            {daysLeft} días restantes
+          </span>
         </div>
       </div>
 
       <div className="stack">
-        {/* Spending Summary */}
-        <div className="card" style={{ textAlign: 'center' }}>
-          <p style={{ color: colors.textSecondary, fontSize: 14, marginBottom: 8 }}>Gasto del Ciclo</p>
-          <p style={{ fontSize: 36, fontWeight: 800, color: colors.text, letterSpacing: -1 }}>
+        {/* Spending Summary — Hero Card */}
+        <div
+          className="card"
+          style={{
+            textAlign: 'center',
+            background: colors.gradient,
+            color: '#fff',
+            padding: '32px 22px',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          <div style={{
+            position: 'absolute', top: -40, right: -40, width: 120, height: 120,
+            borderRadius: '50%', background: 'rgba(255,255,255,0.08)',
+          }} />
+          <div style={{
+            position: 'absolute', bottom: -30, left: -20, width: 80, height: 80,
+            borderRadius: '50%', background: 'rgba(255,255,255,0.05)',
+          }} />
+          <p style={{ fontSize: 14, opacity: 0.85, marginBottom: 6, fontWeight: 600 }}>
+            Gasto del Ciclo
+          </p>
+          <p className="amount-display" style={{ fontSize: 42, fontWeight: 900, letterSpacing: -2 }}>
             {formatMoney(totalSpent)}
           </p>
           {budget && (
-            <p style={{ fontSize: 13, color: colors.textSecondary, marginTop: 4 }}>
+            <p style={{ fontSize: 13, opacity: 0.75, marginTop: 6 }}>
               de {formatMoney(budget.amount)} presupuestado
             </p>
           )}
@@ -82,19 +110,22 @@ export default function Dashboard({ onAddExpense }) {
         {/* Budget Progress */}
         {budget && (
           <div className="card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-              <span style={{ fontSize: 14, fontWeight: 600, color: colors.text }}>Presupuesto</span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: progressColor }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: colors.text }}>Presupuesto</span>
+              <span style={{
+                fontSize: 13, fontWeight: 800, color: '#fff',
+                background: progressColor, padding: '3px 12px', borderRadius: 999,
+              }}>
                 {Math.round(budgetPct * 100)}%
               </span>
             </div>
-            <div className="progress-track" style={{ height: 12 }}>
+            <div className="progress-track" style={{ height: 14 }}>
               <div
                 className="progress-fill"
                 style={{ width: `${Math.min(budgetPct * 100, 100)}%`, background: progressColor }}
               />
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10 }}>
               <span style={{ fontSize: 12, color: colors.textSecondary }}>{formatMoney(totalSpent)}</span>
               <span style={{ fontSize: 12, color: colors.textSecondary }}>{formatMoney(budget.amount)}</span>
             </div>
@@ -104,45 +135,84 @@ export default function Dashboard({ onAddExpense }) {
         {/* Stats Row */}
         <div className="grid-3">
           <div className="card" style={{ textAlign: 'center' }}>
-            <Icon name="Star" size={22} color={colors.accent} style={{ margin: '0 auto 6px' }} />
-            <p style={{ fontWeight: 700, fontSize: 18, color: colors.text }}>Nivel {profile.level}</p>
-            <p style={{ fontSize: 11, color: colors.textSecondary }}>{getLevelTitle(profile.level)}</p>
+            <div style={{
+              width: 42, height: 42, borderRadius: '50%',
+              background: `${colors.accent}15`, display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 10px',
+            }}>
+              <Icon name="Star" size={20} color={colors.accent} />
+            </div>
+            <p style={{ fontWeight: 800, fontSize: 20, color: colors.text }}>Nivel {profile.level}</p>
+            <p style={{ fontSize: 11, color: colors.textSecondary, fontWeight: 500 }}>{getLevelTitle(profile.level)}</p>
           </div>
           <div className="card" style={{ textAlign: 'center' }}>
-            <Icon name="Flame" size={22} color="#F97316" style={{ margin: '0 auto 6px' }} />
-            <p style={{ fontWeight: 700, fontSize: 18, color: colors.text }}>{profile.streakDays} días</p>
-            <p style={{ fontSize: 11, color: colors.textSecondary }}>Racha activa</p>
+            <div style={{
+              width: 42, height: 42, borderRadius: '50%',
+              background: '#F9731615', display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 10px',
+            }}>
+              <Icon name="Flame" size={20} color="#F97316" />
+            </div>
+            <p style={{ fontWeight: 800, fontSize: 20, color: colors.text }}>{profile.streakDays} días</p>
+            <p style={{ fontSize: 11, color: colors.textSecondary, fontWeight: 500 }}>Racha activa</p>
           </div>
           <div className="card" style={{ textAlign: 'center' }}>
-            <Icon name="Zap" size={22} color={colors.primary} style={{ margin: '0 auto 6px' }} />
-            <p style={{ fontWeight: 700, fontSize: 18, color: colors.text }}>{profile.xp} XP</p>
-            <p style={{ fontSize: 11, color: colors.textSecondary }}>Total</p>
+            <div style={{
+              width: 42, height: 42, borderRadius: '50%',
+              background: `${colors.primary}12`, display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 10px',
+            }}>
+              <Icon name="Zap" size={20} color={colors.primary} />
+            </div>
+            <p style={{ fontWeight: 800, fontSize: 20, color: colors.text }}>{profile.xp} XP</p>
+            <p style={{ fontSize: 11, color: colors.textSecondary, fontWeight: 500 }}>Total</p>
           </div>
         </div>
 
         {/* Top Categories */}
         <div className="card">
-          <p style={{ fontWeight: 600, fontSize: 14, color: colors.text, marginBottom: 14 }}>Top Categorías</p>
+          <p style={{ fontWeight: 700, fontSize: 15, color: colors.text, marginBottom: 16 }}>Top Categorías</p>
           {topCategories.length === 0 ? (
-            <p style={{ fontSize: 13, color: colors.textSecondary, textAlign: 'center', padding: '16px 0' }}>
-              Sin gastos en este ciclo
-            </p>
+            <div style={{ textAlign: 'center', padding: '20px 0' }}>
+              <div className="wiggle" style={{ display: 'inline-block' }}>
+                <Icon name="PieChart" size={36} color={`${colors.textSecondary}30`} />
+              </div>
+              <p style={{ fontSize: 13, color: colors.textSecondary, marginTop: 10 }}>
+                Sin gastos en este ciclo
+              </p>
+            </div>
           ) : (
-            topCategories.map(([name, amount]) => {
+            topCategories.map(([name, amount], i) => {
               const cat = categories.find((c) => c.name === name);
+              const pct = totalSpent > 0 ? (amount / totalSpent) * 100 : 0;
               return (
-                <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0' }}>
+                <div
+                  key={name}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0',
+                    animation: `slideUp 0.3s ease ${i * 0.05}s both`,
+                  }}
+                >
                   <div
                     style={{
-                      width: 32, height: 32, borderRadius: '50%',
+                      width: 36, height: 36, borderRadius: '50%',
                       background: cat?.color || '#6B7280',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      boxShadow: `0 2px 8px ${cat?.color || '#6B7280'}30`,
                     }}
                   >
                     <Icon name={cat?.icon || 'Circle'} size={16} color="#fff" />
                   </div>
-                  <span style={{ fontSize: 14, color: colors.text, flex: 1 }}>{name}</span>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: colors.text }}>{formatMoney(amount)}</span>
+                  <div style={{ flex: 1 }}>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: colors.text }}>{name}</span>
+                    <div style={{ marginTop: 4, height: 4, borderRadius: 2, background: 'rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+                      <div style={{ width: `${pct}%`, height: '100%', borderRadius: 2, background: cat?.color || '#6B7280', transition: 'width 0.6s ease' }} />
+                    </div>
+                  </div>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: colors.text }}>{formatMoney(amount)}</span>
                 </div>
               );
             })
@@ -152,13 +222,19 @@ export default function Dashboard({ onAddExpense }) {
         {/* Tips */}
         {tips.length > 0 && (
           <div>
-            <p style={{ fontWeight: 600, fontSize: 14, color: colors.text, marginBottom: 12 }}>Tips del Ciclo</p>
+            <p style={{ fontWeight: 700, fontSize: 15, color: colors.text, marginBottom: 12 }}>Tips del Ciclo</p>
             {tips.slice(0, 3).map((tip, i) => {
               const tipIcon = tip.type === 'warning' ? 'AlertTriangle' : tip.type === 'celebration' ? 'PartyPopper' : tip.type === 'suggestion' ? 'Sparkles' : 'Lightbulb';
               const tipColor = tipColors[tip.type]?.(colors) || colors.primary;
               return (
-                <div key={i} className="tip-card" style={{ background: `${tipColor}10`, marginBottom: 8 }}>
-                  <Icon name={tipIcon} size={18} color={tipColor} />
+                <div key={i} className="tip-card" style={{ background: `${tipColor}10`, marginBottom: 10 }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                    background: `${tipColor}18`, display: 'flex',
+                    alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Icon name={tipIcon} size={16} color={tipColor} />
+                  </div>
                   <p style={{ color: colors.text }}>{tip.message}</p>
                 </div>
               );
@@ -166,10 +242,23 @@ export default function Dashboard({ onAddExpense }) {
           </div>
         )}
 
-        {/* Quick add */}
+        {/* Quick add — Empty state */}
         {expenses.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '24px 0' }}>
-            <button className="btn btn-primary" style={{ background: colors.primary }} onClick={onAddExpense}>
+          <div style={{ textAlign: 'center', padding: '32px 0' }}>
+            <div className="wiggle" style={{ display: 'inline-block', marginBottom: 16 }}>
+              <Icon name="Wallet" size={48} color={`${colors.primary}40`} />
+            </div>
+            <p style={{ fontWeight: 600, color: colors.text, marginBottom: 4, fontSize: 16 }}>
+              Registra tu primer gasto
+            </p>
+            <p style={{ color: colors.textSecondary, fontSize: 13, marginBottom: 20 }}>
+              Empieza a llevar el control de tus finanzas
+            </p>
+            <button
+              className="btn btn-primary"
+              style={{ background: colors.gradient, boxShadow: `0 4px 16px ${colors.primary}30` }}
+              onClick={onAddExpense}
+            >
               <Icon name="Plus" size={18} />
               Registrar primer gasto
             </button>
