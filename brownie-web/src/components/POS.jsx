@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import useBrownieStore, { FLAVORS } from '../store/useStore'
+import { playCashSound, playAddSound, playRemoveSound } from '../services/sounds'
 
 function formatMoney(n) {
   return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(n)
@@ -16,14 +17,36 @@ export default function POS() {
 
   const [showConfirm, setShowConfirm] = useState(false)
   const [lastTotal, setLastTotal] = useState(0)
+  const [lastChange, setLastChange] = useState(null)
+
+  // Change calculator
+  const [paidWith, setPaidWith] = useState('')
+  const [showChangeCalc, setShowChangeCalc] = useState(false)
 
   const totals = getCartTotal()
   const isEmpty = totals.totalUnits === 0
 
+  const paidAmount = parseFloat(paidWith) || 0
+  const changeAmount = paidAmount - totals.totalPrice
+  const canComplete = isEmpty ? false : (!showChangeCalc || paidAmount >= totals.totalPrice)
+
   function handleComplete() {
     setLastTotal(totals.totalPrice)
+    setLastChange(showChangeCalc && paidAmount > totals.totalPrice ? changeAmount : null)
     completeSale()
+    playCashSound()
     setShowConfirm(true)
+    setPaidWith('')
+  }
+
+  function handleAdd(flavorId) {
+    addToCart(flavorId)
+    playAddSound()
+  }
+
+  function handleRemove(flavorId) {
+    removeFromCart(flavorId)
+    playRemoveSound()
   }
 
   return (
@@ -55,7 +78,7 @@ export default function POS() {
                 <div className="flex items-center gap-md">
                   <button
                     className="btn btn--ghost btn--sm"
-                    onClick={() => removeFromCart(f.id)}
+                    onClick={() => handleRemove(f.id)}
                     disabled={inCart === 0}
                     style={{ padding: '6px 12px', fontSize: '1.1rem', fontWeight: 900 }}
                   >
@@ -64,7 +87,7 @@ export default function POS() {
                   <strong className="text-xl" style={{ minWidth: 28, textAlign: 'center' }}>{inCart}</strong>
                   <button
                     className="btn btn--primary btn--sm"
-                    onClick={() => addToCart(f.id)}
+                    onClick={() => handleAdd(f.id)}
                     disabled={stock <= inCart}
                     style={{ padding: '6px 12px', fontSize: '1.1rem', fontWeight: 900 }}
                   >
@@ -138,9 +161,71 @@ export default function POS() {
         </div>
       )}
 
+      {/* Change Calculator (optional) */}
+      {!isEmpty && (
+        <div className="card card--subtle">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-sm">
+              <span>💵</span>
+              <strong className="text-sm">Calcular cambio</strong>
+            </div>
+            <button
+              onClick={() => { setShowChangeCalc(!showChangeCalc); setPaidWith('') }}
+              className="text-sm font-bold"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)' }}
+            >
+              {showChangeCalc ? 'Ocultar' : 'Mostrar'}
+            </button>
+          </div>
+
+          {showChangeCalc && (
+            <div className="mt-sm flex-col gap-sm">
+              <div>
+                <label>El cliente paga con:</label>
+                <input
+                  className="input"
+                  type="number"
+                  placeholder="$0"
+                  value={paidWith}
+                  onChange={e => setPaidWith(e.target.value)}
+                  min="0"
+                  style={{ fontSize: '1.2rem', fontWeight: 800, textAlign: 'center' }}
+                />
+              </div>
+              {paidAmount > 0 && (
+                <div
+                  className="card text-center"
+                  style={{
+                    borderColor: changeAmount >= 0 ? 'var(--success)' : 'var(--danger)',
+                    background: changeAmount >= 0 ? 'rgba(46,125,50,0.06)' : 'rgba(211,47,47,0.06)',
+                    padding: '12px',
+                  }}
+                >
+                  {changeAmount >= 0 ? (
+                    <>
+                      <p className="text-sm text-secondary">Cambio a entregar:</p>
+                      <strong className="text-2xl text-success">{formatMoney(changeAmount)}</strong>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm text-danger font-bold">Faltan {formatMoney(Math.abs(changeAmount))}</p>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Complete Button */}
       {!isEmpty && (
-        <button className="btn btn--primary btn--block" style={{ padding: '14px', fontSize: '1.1rem' }} onClick={handleComplete}>
+        <button
+          className="btn btn--primary btn--block"
+          style={{ padding: '14px', fontSize: '1.1rem' }}
+          onClick={handleComplete}
+          disabled={!canComplete}
+        >
           ✅ Cobrar {formatMoney(totals.totalPrice)}
         </button>
       )}
@@ -151,8 +236,14 @@ export default function POS() {
           <div className="modal text-center animate-scale" onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: '3.5rem', marginBottom: 12 }}>✅</div>
             <h2 style={{ fontWeight: 900, marginBottom: 8 }}>¡Venta Registrada!</h2>
-            <p className="text-2xl font-black text-primary" style={{ marginBottom: 20 }}>{formatMoney(lastTotal)}</p>
-            <button className="btn btn--accent btn--block" onClick={() => setShowConfirm(false)}>Continuar</button>
+            <p className="text-2xl font-black text-primary" style={{ marginBottom: 8 }}>{formatMoney(lastTotal)}</p>
+            {lastChange !== null && (
+              <div style={{ marginBottom: 16 }}>
+                <p className="text-sm text-secondary">Cambio:</p>
+                <strong className="text-xl text-success">{formatMoney(lastChange)}</strong>
+              </div>
+            )}
+            <button className="btn btn--accent btn--block" onClick={() => setShowConfirm(false)} style={{ marginTop: lastChange === null ? 16 : 0 }}>Continuar</button>
           </div>
         </div>
       )}

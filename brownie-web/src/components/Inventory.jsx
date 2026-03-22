@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import useBrownieStore, { FLAVORS, MATERIAL_CATEGORIES } from '../store/useStore'
+import { playRestockSound, playExpenseSound, playDeleteSound } from '../services/sounds'
 
 function formatMoney(n) {
   return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(n)
@@ -9,6 +10,7 @@ export default function Inventory() {
   const inventory = useBrownieStore(s => s.inventory)
   const expenses = useBrownieStore(s => s.expenses)
   const restockFlavor = useBrownieStore(s => s.restockFlavor)
+  const setStock = useBrownieStore(s => s.setStock)
   const addExpense = useBrownieStore(s => s.addExpense)
   const deleteExpense = useBrownieStore(s => s.deleteExpense)
 
@@ -17,6 +19,10 @@ export default function Inventory() {
   const [showAddExpense, setShowAddExpense] = useState(false)
   const [rFlavor, setRFlavor] = useState('tripleChocolate')
   const [rQty, setRQty] = useState('')
+
+  // Edit stock
+  const [editingFlavor, setEditingFlavor] = useState(null)
+  const [editQty, setEditQty] = useState('')
 
   // Expense form
   const [eAmount, setEAmount] = useState('')
@@ -43,19 +49,41 @@ export default function Inventory() {
     const qty = parseInt(rQty)
     if (qty > 0) {
       restockFlavor(rFlavor, qty)
+      playRestockSound()
       setRQty('')
       setShowRestock(false)
     }
+  }
+
+  function handleEditStock(flavorId) {
+    setEditingFlavor(flavorId)
+    setEditQty(String(inventory[flavorId] || 0))
+  }
+
+  function handleSaveStock() {
+    const qty = parseInt(editQty)
+    if (!isNaN(qty) && qty >= 0) {
+      setStock(editingFlavor, qty)
+      playRestockSound()
+    }
+    setEditingFlavor(null)
+    setEditQty('')
   }
 
   function handleAddExpense() {
     const amount = parseFloat(eAmount)
     if (amount > 0) {
       addExpense({ amount, category: eCat, description: eDesc })
+      playExpenseSound()
       setEAmount('')
       setEDesc('')
       setShowAddExpense(false)
     }
+  }
+
+  function handleDeleteExpense(id) {
+    deleteExpense(id)
+    playDeleteSound()
   }
 
   return (
@@ -97,6 +125,7 @@ export default function Inventory() {
           {FLAVORS.map(f => {
             const stock = inventory[f.id] || 0
             const isLow = stock < 5
+            const isEditing = editingFlavor === f.id
             return (
               <div key={f.id} className="card" style={{ borderColor: f.color }}>
                 <div className="flex items-center justify-between">
@@ -107,11 +136,39 @@ export default function Inventory() {
                       <p className="text-xs text-secondary">Costo: $13/ud</p>
                     </div>
                   </div>
-                  <div className="text-center">
-                    <strong className="text-xl" style={{ color: isLow ? 'var(--danger)' : 'var(--text)' }}>
-                      {stock}
-                    </strong>
-                    {isLow && <span className="badge badge--danger" style={{ display: 'block', marginTop: 4 }}>¡Bajo!</span>}
+                  <div className="flex items-center gap-sm">
+                    {isEditing ? (
+                      <>
+                        <input
+                          className="input"
+                          type="number"
+                          value={editQty}
+                          onChange={e => setEditQty(e.target.value)}
+                          min="0"
+                          style={{ width: 70, textAlign: 'center', padding: '6px', fontSize: '1.1rem', fontWeight: 800 }}
+                          autoFocus
+                          onKeyDown={e => e.key === 'Enter' && handleSaveStock()}
+                        />
+                        <button className="btn btn--success btn--sm" onClick={handleSaveStock} style={{ padding: '6px 10px' }}>✓</button>
+                        <button className="btn btn--ghost btn--sm" onClick={() => setEditingFlavor(null)} style={{ padding: '6px 10px' }}>✕</button>
+                      </>
+                    ) : (
+                      <>
+                        <div className="text-center">
+                          <strong className="text-xl" style={{ color: isLow ? 'var(--danger)' : 'var(--text)' }}>
+                            {stock}
+                          </strong>
+                          {isLow && <span className="badge badge--danger" style={{ display: 'block', marginTop: 4 }}>¡Bajo!</span>}
+                        </div>
+                        <button
+                          onClick={() => handleEditStock(f.id)}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85rem', padding: '4px' }}
+                          title="Corregir stock"
+                        >
+                          ✏️
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -191,7 +248,7 @@ export default function Inventory() {
                 <div className="flex items-center gap-sm">
                   <strong className="text-danger">{formatMoney(e.amount)}</strong>
                   <button
-                    onClick={() => deleteExpense(e.id)}
+                    onClick={() => handleDeleteExpense(e.id)}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem' }}
                     title="Eliminar"
                   >

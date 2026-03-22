@@ -50,6 +50,14 @@ const useBrownieStore = create(
         }
       })),
 
+      // Directly set stock for a flavor (for corrections)
+      setStock: (flavorId, quantity) => set(state => ({
+        inventory: {
+          ...state.inventory,
+          [flavorId]: Math.max(0, quantity),
+        }
+      })),
+
       // ── Cart (POS) ──
       cart: {},
 
@@ -119,6 +127,20 @@ const useBrownieStore = create(
           sales: [sale, ...state.sales],
           inventory: newInventory,
           cart: {},
+        }
+      }),
+
+      // Delete a sale and restore its stock
+      deleteSale: (id) => set(state => {
+        const sale = state.sales.find(s => s.id === id)
+        if (!sale) return state
+        const newInventory = { ...state.inventory }
+        for (const item of sale.items) {
+          newInventory[item.flavorId] = (newInventory[item.flavorId] || 0) + item.quantity
+        }
+        return {
+          sales: state.sales.filter(s => s.id !== id),
+          inventory: newInventory,
         }
       }),
 

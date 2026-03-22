@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import useBrownieStore, { FLAVORS } from '../store/useStore'
+import { playDeleteSound } from '../services/sounds'
 
 function formatMoney(n) {
   return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(n)
@@ -8,6 +10,9 @@ export default function Dashboard() {
   const inventory = useBrownieStore(s => s.inventory)
   const getTodaySales = useBrownieStore(s => s.getTodaySales)
   const getLowStockFlavors = useBrownieStore(s => s.getLowStockFlavors)
+  const deleteSale = useBrownieStore(s => s.deleteSale)
+
+  const [confirmDelete, setConfirmDelete] = useState(null)
 
   const todaySales = getTodaySales()
   const lowStock = getLowStockFlavors()
@@ -15,6 +20,12 @@ export default function Dashboard() {
   const todayRevenue = todaySales.reduce((s, sale) => s + sale.totalAmount, 0)
   const todayProfit = todaySales.reduce((s, sale) => s + (sale.totalAmount - sale.totalCost), 0)
   const todaySold = todaySales.reduce((s, sale) => s + sale.totalBrownies, 0)
+
+  function handleDeleteSale(id) {
+    deleteSale(id)
+    playDeleteSound()
+    setConfirmDelete(null)
+  }
 
   return (
     <div className="page flex-col gap-lg animate-in">
@@ -100,20 +111,53 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="flex-col gap-sm">
-            {todaySales.slice(0, 5).map(sale => (
-              <div key={sale.id} className="card card--sm flex items-center justify-between">
-                <div>
-                  <strong>{sale.totalBrownies} brownies</strong>
-                  <p className="text-xs text-secondary">
-                    {new Date(sale.date).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
-                  </p>
+            {todaySales.slice(0, 10).map(sale => (
+              <div key={sale.id} className="card card--sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <strong>{sale.totalBrownies} brownies</strong>
+                    <p className="text-xs text-secondary">
+                      {new Date(sale.date).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
+                      {' · '}
+                      {sale.items.map(i => {
+                        const f = FLAVORS.find(fl => fl.id === i.flavorId)
+                        return `${f?.icon || ''} ${i.quantity}`
+                      }).join('  ')}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-sm">
+                    <strong className="text-primary text-lg">{formatMoney(sale.totalAmount)}</strong>
+                    <button
+                      onClick={() => setConfirmDelete(sale.id)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85rem', padding: '4px' }}
+                      title="Cancelar venta"
+                    >
+                      🗑️
+                    </button>
+                  </div>
                 </div>
-                <strong className="text-primary text-lg">{formatMoney(sale.totalAmount)}</strong>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation */}
+      {confirmDelete && (
+        <div className="overlay" onClick={() => setConfirmDelete(null)}>
+          <div className="modal text-center animate-scale" onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>⚠️</div>
+            <h3 style={{ fontWeight: 800, marginBottom: 8 }}>¿Cancelar esta venta?</h3>
+            <p className="text-sm text-secondary" style={{ marginBottom: 16 }}>
+              Se eliminará la venta y el stock se restaurará automáticamente.
+            </p>
+            <div className="flex gap-sm">
+              <button className="btn btn--ghost btn--block" onClick={() => setConfirmDelete(null)}>No, mantener</button>
+              <button className="btn btn--danger btn--block" onClick={() => handleDeleteSale(confirmDelete)}>Sí, cancelar venta</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import useBrownieStore from '../store/useStore'
+import { playOrderSound, playSuccessSound, playDeleteSound } from '../services/sounds'
 
 function formatMoney(n) {
   return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(n)
@@ -36,6 +37,7 @@ export default function Orders() {
       isPaid,
       notes: notes.trim(),
     })
+    playOrderSound()
     setName(''); setDesc(''); setDate(''); setAmount(''); setIsPaid(false); setNotes('')
     setShowAdd(false)
   }
@@ -111,7 +113,7 @@ export default function Orders() {
                   </button>
                   <button
                     className="btn btn--success btn--sm"
-                    onClick={() => markOrderDelivered(order.id)}
+                    onClick={() => { markOrderDelivered(order.id); playSuccessSound() }}
                   >
                     ✅ Entregado
                   </button>
@@ -140,7 +142,7 @@ export default function Orders() {
                     <p className="text-xs text-secondary">{order.orderDescription}</p>
                   </div>
                   <button
-                    onClick={() => deleteOrder(order.id)}
+                    onClick={() => { deleteOrder(order.id); playDeleteSound() }}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9rem' }}
                   >
                     🗑️
