@@ -19,14 +19,23 @@ const COST_PER_UNIT = 13.0
 const PRICE_SINGLE = 30.0
 const PRICE_PAIR = 55.0
 
+// Preset promo prices for quick selection
+export const PROMO_PRESETS = [
+  { label: '2×$55', pairPrice: 55, singlePrice: 30 },
+  { label: '2×$50', pairPrice: 50, singlePrice: 25 },
+  { label: '2×$45', pairPrice: 45, singlePrice: 25 },
+  { label: '2×$40', pairPrice: 40, singlePrice: 20 },
+]
+
 /**
- * Discount formula: (total/2)*55 + (total%2)*30
- * 2x$55 applies to any flavor combination
+ * Discount formula: (total/2)*pairPrice + (total%2)*singlePrice
+ * Default: 2x$55 / $30 individual
+ * Promo mode: custom pair/single price
  */
-export function calculateTotal(totalUnits) {
+export function calculateTotal(totalUnits, pairPrice = PRICE_PAIR, singlePrice = PRICE_SINGLE) {
   const pairs = Math.floor(totalUnits / 2)
   const remainder = totalUnits % 2
-  return pairs * PRICE_PAIR + remainder * PRICE_SINGLE
+  return pairs * pairPrice + remainder * singlePrice
 }
 
 export function calculateCost(totalUnits) {
@@ -82,24 +91,27 @@ const useBrownieStore = create(
 
       clearCart: () => set({ cart: {} }),
 
-      getCartTotal: () => {
+      getCartTotal: (pairPrice = PRICE_PAIR, singlePrice = PRICE_SINGLE) => {
         const { cart } = get()
         const totalUnits = Object.values(cart).reduce((sum, q) => sum + q, 0)
+        const price = calculateTotal(totalUnits, pairPrice, singlePrice)
         return {
           totalUnits,
-          totalPrice: calculateTotal(totalUnits),
+          totalPrice: price,
           totalCost: calculateCost(totalUnits),
-          profit: calculateTotal(totalUnits) - calculateCost(totalUnits),
+          profit: price - calculateCost(totalUnits),
           pairs: Math.floor(totalUnits / 2),
           singles: totalUnits % 2,
-          discount: (totalUnits * PRICE_SINGLE) - calculateTotal(totalUnits),
+          discount: (totalUnits * PRICE_SINGLE) - price,
+          pairPrice,
+          singlePrice,
         }
       },
 
       // ── Sales ──
       sales: [],
 
-      completeSale: () => set(state => {
+      completeSale: (pairPrice = PRICE_PAIR, singlePrice = PRICE_SINGLE) => set(state => {
         const { cart, inventory } = state
         const totalUnits = Object.values(cart).reduce((sum, q) => sum + q, 0)
         if (totalUnits === 0) return state
@@ -112,7 +124,7 @@ const useBrownieStore = create(
           id: Date.now().toString(),
           date: new Date().toISOString(),
           items,
-          totalAmount: calculateTotal(totalUnits),
+          totalAmount: calculateTotal(totalUnits, pairPrice, singlePrice),
           totalCost: calculateCost(totalUnits),
           totalBrownies: totalUnits,
         }

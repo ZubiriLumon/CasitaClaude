@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import useBrownieStore, { FLAVORS } from '../store/useStore'
+import useBrownieStore, { FLAVORS, PROMO_PRESETS } from '../store/useStore'
 import { playCashSound, playAddSound, playRemoveSound } from '../services/sounds'
 
 function formatMoney(n) {
@@ -23,7 +23,27 @@ export default function POS() {
   const [paidWith, setPaidWith] = useState('')
   const [showChangeCalc, setShowChangeCalc] = useState(false)
 
-  const totals = getCartTotal()
+  // Promo pricing
+  const [promoActive, setPromoActive] = useState(false)
+  const [selectedPreset, setSelectedPreset] = useState(1) // index into PROMO_PRESETS, default 2x$50
+  const [customPairPrice, setCustomPairPrice] = useState('')
+  const [customSinglePrice, setCustomSinglePrice] = useState('')
+  const [useCustom, setUseCustom] = useState(false)
+
+  // Determine active pricing
+  let activePairPrice = 55
+  let activeSinglePrice = 30
+  if (promoActive) {
+    if (useCustom) {
+      activePairPrice = parseFloat(customPairPrice) || 55
+      activeSinglePrice = parseFloat(customSinglePrice) || 30
+    } else {
+      activePairPrice = PROMO_PRESETS[selectedPreset].pairPrice
+      activeSinglePrice = PROMO_PRESETS[selectedPreset].singlePrice
+    }
+  }
+
+  const totals = getCartTotal(activePairPrice, activeSinglePrice)
   const isEmpty = totals.totalUnits === 0
 
   const paidAmount = parseFloat(paidWith) || 0
@@ -33,7 +53,7 @@ export default function POS() {
   function handleComplete() {
     setLastTotal(totals.totalPrice)
     setLastChange(showChangeCalc && paidAmount > totals.totalPrice ? changeAmount : null)
-    completeSale()
+    completeSale(activePairPrice, activeSinglePrice)
     playCashSound()
     setShowConfirm(true)
     setPaidWith('')
@@ -51,7 +71,86 @@ export default function POS() {
 
   return (
     <div className="page flex-col gap-lg animate-in">
-      <h1 className="page-title">Punto de Venta</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="page-title" style={{ marginBottom: 0 }}>Punto de Venta</h1>
+        {/* Promo toggle */}
+        <button
+          className={`btn btn--sm ${promoActive ? 'btn--orange' : 'btn--ghost'}`}
+          onClick={() => setPromoActive(!promoActive)}
+          style={{ whiteSpace: 'nowrap' }}
+        >
+          🔥 {promoActive ? 'Remate ON' : 'Remate'}
+        </button>
+      </div>
+
+      {/* Promo Config */}
+      {promoActive && (
+        <div
+          className="card"
+          style={{
+            borderColor: 'var(--accent-orange)',
+            background: 'rgba(255,176,103,0.08)',
+          }}
+        >
+          <div className="flex items-center gap-sm mb-md">
+            <span>🔥</span>
+            <strong style={{ color: '#E65100' }}>Modo Remate</strong>
+          </div>
+
+          {/* Preset buttons */}
+          <div className="flex gap-sm" style={{ flexWrap: 'wrap', marginBottom: 8 }}>
+            {PROMO_PRESETS.map((preset, i) => (
+              <button
+                key={i}
+                className={`btn btn--sm ${!useCustom && selectedPreset === i ? 'btn--orange' : 'btn--ghost'}`}
+                onClick={() => { setSelectedPreset(i); setUseCustom(false) }}
+                style={{ flex: '1 0 auto', minWidth: 'fit-content' }}
+              >
+                {preset.label}
+              </button>
+            ))}
+            <button
+              className={`btn btn--sm ${useCustom ? 'btn--orange' : 'btn--ghost'}`}
+              onClick={() => setUseCustom(true)}
+              style={{ flex: '1 0 auto' }}
+            >
+              Otro
+            </button>
+          </div>
+
+          {/* Custom price inputs */}
+          {useCustom && (
+            <div className="flex gap-sm mt-sm">
+              <div style={{ flex: 1 }}>
+                <label>Precio par ($)</label>
+                <input
+                  className="input"
+                  type="number"
+                  placeholder="50"
+                  value={customPairPrice}
+                  onChange={e => setCustomPairPrice(e.target.value)}
+                  min="0"
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label>Individual ($)</label>
+                <input
+                  className="input"
+                  type="number"
+                  placeholder="25"
+                  value={customSinglePrice}
+                  onChange={e => setCustomSinglePrice(e.target.value)}
+                  min="0"
+                />
+              </div>
+            </div>
+          )}
+
+          <p className="text-xs text-secondary mt-sm">
+            Vendiendo a: <strong>2×${activePairPrice}</strong> / individual <strong>${activeSinglePrice}</strong>
+          </p>
+        </div>
+      )}
 
       {/* Flavor Selection */}
       <div className="flex-col gap-sm">
@@ -106,6 +205,7 @@ export default function POS() {
           <div className="flex items-center gap-sm">
             <span style={{ fontSize: '1.3rem' }}>🛒</span>
             <strong>Carrito</strong>
+            {promoActive && <span className="badge badge--orange">🔥 Remate</span>}
           </div>
           {!isEmpty && (
             <button className="text-danger text-sm font-bold" style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={clearCart}>
@@ -134,21 +234,21 @@ export default function POS() {
 
           {totals.pairs > 0 && (
             <div className="flex justify-between text-sm" style={{ padding: '3px 0' }}>
-              <span>{totals.pairs} par(es) × $55</span>
-              <strong>{formatMoney(totals.pairs * 55)}</strong>
+              <span>{totals.pairs} par(es) × ${activePairPrice}</span>
+              <strong>{formatMoney(totals.pairs * activePairPrice)}</strong>
             </div>
           )}
           {totals.singles > 0 && (
             <div className="flex justify-between text-sm" style={{ padding: '3px 0' }}>
-              <span>{totals.singles} individual × $30</span>
-              <strong>{formatMoney(30)}</strong>
+              <span>{totals.singles} individual × ${activeSinglePrice}</span>
+              <strong>{formatMoney(activeSinglePrice)}</strong>
             </div>
           )}
           {totals.discount > 0 && (
             <>
               <hr style={{ margin: '8px 0', borderColor: '#D7CCC8' }} />
               <div className="flex justify-between text-sm">
-                <span>✨ Ahorro del cliente</span>
+                <span>✨ Ahorro vs precio normal</span>
                 <strong className="text-success">-{formatMoney(totals.discount)}</strong>
               </div>
             </>
@@ -207,9 +307,7 @@ export default function POS() {
                       <strong className="text-2xl text-success">{formatMoney(changeAmount)}</strong>
                     </>
                   ) : (
-                    <>
-                      <p className="text-sm text-danger font-bold">Faltan {formatMoney(Math.abs(changeAmount))}</p>
-                    </>
+                    <p className="text-sm text-danger font-bold">Faltan {formatMoney(Math.abs(changeAmount))}</p>
                   )}
                 </div>
               )}
