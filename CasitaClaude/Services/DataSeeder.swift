@@ -7,6 +7,7 @@ struct DataSeeder {
     static func seedIfNeeded(context: ModelContext) {
         seedCategories(context: context)
         seedProfile(context: context)
+        seedBrownieProducts(context: context)
     }
 
     private static func seedCategories(context: ModelContext) {
@@ -48,6 +49,24 @@ struct DataSeeder {
 
         let profile = UserProfile(billingCycleStartDay: 1)
         context.insert(profile)
+        try? context.save()
+    }
+
+    /// Creates default brownie products (one per flavor) if none exist
+    private static func seedBrownieProducts(context: ModelContext) {
+        let descriptor = FetchDescriptor<BrownieProduct>()
+        let existing = (try? context.fetch(descriptor))?.count ?? 0
+        guard existing == 0 else { return }
+
+        for flavor in BrownieFlavor.allCases {
+            let product = BrownieProduct(
+                flavor: flavor,
+                stock: 0,
+                costPerUnit: 13.0,
+                pricePerUnit: 30.0
+            )
+            context.insert(product)
+        }
         try? context.save()
     }
 }

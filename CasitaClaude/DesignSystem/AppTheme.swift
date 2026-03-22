@@ -44,23 +44,37 @@ struct AppTheme {
         )
     }
 
-    // MARK: Business Palette
+    // MARK: Business Palette — Chocolate Neubrutalismo
     struct Business {
-        static let primary = Color(hex: "0F766E")       // Teal dark
-        static let secondary = Color(hex: "14B8A6")     // Teal
-        static let accent = Color(hex: "F59E0B")        // Amber gold
-        static let background = Color(hex: "F0FDFA")    // Teal tint
-        static let cardBackground = Color.white
-        static let textPrimary = Color(hex: "134E4A")   // Dark teal
-        static let textSecondary = Color(hex: "6B7280") // Cool gray
-        static let danger = Color(hex: "DC2626")        // Red
-        static let warning = Color(hex: "D97706")       // Dark amber
-        static let success = Color(hex: "059669")       // Green
+        static let primary = Color(hex: "5D3A1A")       // Rich chocolate
+        static let secondary = Color(hex: "8B5E3C")     // Warm brown
+        static let accent = Color(hex: "7ECFB3")        // Mint green
+        static let accentOrange = Color(hex: "FFB067")  // Orange pastel
+        static let background = Color(hex: "FFF8F0")    // Warm cream
+        static let cardBackground = Color(hex: "FFFDF9") // Soft ivory
+        static let textPrimary = Color(hex: "3E2723")   // Deep cocoa
+        static let textSecondary = Color(hex: "8D6E63") // Mocha gray
+        static let danger = Color(hex: "D32F2F")        // Red
+        static let warning = Color(hex: "F57C00")       // Dark orange
+        static let success = Color(hex: "2E7D32")       // Green
         static let gradient = LinearGradient(
-            colors: [Color(hex: "0F766E"), Color(hex: "14B8A6")],
+            colors: [Color(hex: "5D3A1A"), Color(hex: "8B5E3C")],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
+    }
+
+    // MARK: - Neubrutalismo Design Tokens
+    struct Neubrutalism {
+        static let borderWidth: CGFloat = 2.5
+        static let shadowOffset: CGFloat = 4
+        static let cornerRadius: CGFloat = 18
+        static let bigCornerRadius: CGFloat = 24
+
+        /// Parallel shadow modifier for neubrutalismo cards
+        static func shadow(color: Color = Color.black.opacity(0.15)) -> some View {
+            EmptyView()
+        }
     }
 
     // MARK: - Dynamic Colors based on section

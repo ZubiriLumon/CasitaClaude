@@ -9,6 +9,7 @@ struct RootView: View {
     @Query private var profiles: [UserProfile]
 
     @State private var selectedTab: Tab = .dashboard
+    @State private var selectedBrownieTab: BrownieTab = .dashboard
 
     enum Tab: String, CaseIterable {
         case dashboard = "Inicio"
@@ -28,6 +29,24 @@ struct RootView: View {
         }
     }
 
+    enum BrownieTab: String, CaseIterable {
+        case dashboard = "Inicio"
+        case pos = "Vender"
+        case inventory = "Inventario"
+        case orders = "Pedidos"
+        case reports = "Reportes"
+
+        var icon: String {
+            switch self {
+            case .dashboard: return "house.fill"
+            case .pos: return "cart.fill"
+            case .inventory: return "shippingbox.fill"
+            case .orders: return "list.clipboard.fill"
+            case .reports: return "chart.bar.fill"
+            }
+        }
+    }
+
     private var profile: UserProfile {
         profiles.first ?? UserProfile()
     }
@@ -41,39 +60,74 @@ struct RootView: View {
                 // Section Switcher Header
                 SectionSwitcherView()
 
-                // Content
-                TabView(selection: $selectedTab) {
-                    DashboardView(profile: profile)
-                        .tag(Tab.dashboard)
-                        .tabItem {
-                            Label(Tab.dashboard.rawValue, systemImage: Tab.dashboard.icon)
-                        }
+                // Content — switches between personal finance and brownie business
+                if appVM.currentSection == .personal {
+                    TabView(selection: $selectedTab) {
+                        DashboardView(profile: profile)
+                            .tag(Tab.dashboard)
+                            .tabItem {
+                                Label(Tab.dashboard.rawValue, systemImage: Tab.dashboard.icon)
+                            }
 
-                    ExpenseListView(profile: profile)
-                        .tag(Tab.expenses)
-                        .tabItem {
-                            Label(Tab.expenses.rawValue, systemImage: Tab.expenses.icon)
-                        }
+                        ExpenseListView(profile: profile)
+                            .tag(Tab.expenses)
+                            .tabItem {
+                                Label(Tab.expenses.rawValue, systemImage: Tab.expenses.icon)
+                            }
 
-                    BudgetListView(profile: profile)
-                        .tag(Tab.budget)
-                        .tabItem {
-                            Label(Tab.budget.rawValue, systemImage: Tab.budget.icon)
-                        }
+                        BudgetListView(profile: profile)
+                            .tag(Tab.budget)
+                            .tabItem {
+                                Label(Tab.budget.rawValue, systemImage: Tab.budget.icon)
+                            }
 
-                    MonthlyReportView(profile: profile)
-                        .tag(Tab.reports)
-                        .tabItem {
-                            Label(Tab.reports.rawValue, systemImage: Tab.reports.icon)
-                        }
+                        MonthlyReportView(profile: profile)
+                            .tag(Tab.reports)
+                            .tabItem {
+                                Label(Tab.reports.rawValue, systemImage: Tab.reports.icon)
+                            }
 
-                    ProfileView(profile: profile)
-                        .tag(Tab.profile)
-                        .tabItem {
-                            Label(Tab.profile.rawValue, systemImage: Tab.profile.icon)
-                        }
+                        ProfileView(profile: profile)
+                            .tag(Tab.profile)
+                            .tabItem {
+                                Label(Tab.profile.rawValue, systemImage: Tab.profile.icon)
+                            }
+                    }
+                    .tint(AppTheme.primary(for: .personal))
+                } else {
+                    TabView(selection: $selectedBrownieTab) {
+                        BrownieDashboardView()
+                            .tag(BrownieTab.dashboard)
+                            .tabItem {
+                                Label(BrownieTab.dashboard.rawValue, systemImage: BrownieTab.dashboard.icon)
+                            }
+
+                        POSView()
+                            .tag(BrownieTab.pos)
+                            .tabItem {
+                                Label(BrownieTab.pos.rawValue, systemImage: BrownieTab.pos.icon)
+                            }
+
+                        InventoryView()
+                            .tag(BrownieTab.inventory)
+                            .tabItem {
+                                Label(BrownieTab.inventory.rawValue, systemImage: BrownieTab.inventory.icon)
+                            }
+
+                        PendingOrdersView()
+                            .tag(BrownieTab.orders)
+                            .tabItem {
+                                Label(BrownieTab.orders.rawValue, systemImage: BrownieTab.orders.icon)
+                            }
+
+                        BrownieReportView()
+                            .tag(BrownieTab.reports)
+                            .tabItem {
+                                Label(BrownieTab.reports.rawValue, systemImage: BrownieTab.reports.icon)
+                            }
+                    }
+                    .tint(AppTheme.Business.primary)
                 }
-                .tint(AppTheme.primary(for: appVM.currentSection))
             }
 
             // Floating feedback toast

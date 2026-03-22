@@ -13,6 +13,10 @@ struct CasitaClaudeApp: App {
             Budget.self,
             Income.self,
             UserProfile.self,
+            BrownieProduct.self,
+            Sale.self,
+            PendingOrder.self,
+            RawMaterialExpense.self,
         ])
         let modelConfiguration = ModelConfiguration(
             schema: schema,
