@@ -51,7 +51,7 @@ final class Sale {
     }
 
     /// Production cost: $13 per unit
-    static func calculateCost(items: [SaleItem], costPerUnit: Double = 13.0) -> Double {
+    static func calculateCost(items: [SaleItem], costPerUnit: Double = 8.0) -> Double {
         let totalUnits = items.reduce(0) { $0 + $1.quantity }
         return Double(totalUnits) * costPerUnit
     }

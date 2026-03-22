@@ -133,7 +133,7 @@ export default function Inventory() {
                     <span style={{ fontSize: '2rem' }}>{f.icon}</span>
                     <div>
                       <strong>{f.name}</strong>
-                      <p className="text-xs text-secondary">Costo: $13/ud</p>
+                      <p className="text-xs text-secondary">Costo: $8/ud</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-sm">

@@ -30,7 +30,7 @@ final class SalesViewModel {
 
     /// Production cost at $13/unit
     var cartCost: Double {
-        Double(totalBrowniesInCart) * 13.0
+        Double(totalBrowniesInCart) * 8.0
     }
 
     /// Net profit if sale completes

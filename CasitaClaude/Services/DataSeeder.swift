@@ -62,7 +62,7 @@ struct DataSeeder {
             let product = BrownieProduct(
                 flavor: flavor,
                 stock: 0,
-                costPerUnit: 13.0,
+                costPerUnit: 8.0,
                 pricePerUnit: 30.0
             )
             context.insert(product)

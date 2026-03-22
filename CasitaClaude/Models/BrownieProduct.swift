@@ -50,7 +50,7 @@ final class BrownieProduct {
         id: UUID = UUID(),
         flavor: BrownieFlavor,
         stock: Int = 0,
-        costPerUnit: Double = 13.0,
+        costPerUnit: Double = 8.0,
         pricePerUnit: Double = 30.0
     ) {
         self.id = id

@@ -15,7 +15,7 @@ export const MATERIAL_CATEGORIES = [
 ]
 
 // Pricing constants
-const COST_PER_UNIT = 13.0
+const COST_PER_UNIT = 8.0
 const PRICE_SINGLE = 30.0
 const PRICE_PAIR = 55.0
 
