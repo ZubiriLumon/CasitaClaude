@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import useBrownieStore, { FLAVORS, MATERIAL_CATEGORIES } from '../store/useStore'
 import { playRestockSound, playExpenseSound, playDeleteSound } from '../services/sounds'
+import { BoxDoodle, WavyUnderline, SparkleCluster } from './Doodles'
 
 function formatMoney(n) {
   return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(n)
@@ -88,7 +89,15 @@ export default function Inventory() {
 
   return (
     <div className="page flex-col gap-lg animate-in">
-      <h1 className="page-title">Inventario</h1>
+      <div className="section-header">
+        <div>
+          <h1 className="page-title" style={{ marginBottom: 0 }}>Inventario</h1>
+          <WavyUnderline width={130} color="#8B5E3C" />
+        </div>
+        <div className="doodle-float section-header__doodle">
+          <BoxDoodle size={55} />
+        </div>
+      </div>
 
       {/* Tabs */}
       <div className="flex gap-sm">

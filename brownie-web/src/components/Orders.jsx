@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import useBrownieStore from '../store/useStore'
 import { playOrderSound, playSuccessSound, playDeleteSound } from '../services/sounds'
+import { ClipboardDoodle, WavyUnderline } from './Doodles'
 
 function formatMoney(n) {
   return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(n)
@@ -48,9 +49,17 @@ export default function Orders() {
 
   return (
     <div className="page flex-col gap-lg animate-in">
-      <div className="flex items-center justify-between">
-        <h1 className="page-title" style={{ marginBottom: 0 }}>Pedidos</h1>
-        <button className="btn btn--primary btn--sm" onClick={() => setShowAdd(true)}>➕ Nuevo</button>
+      <div className="section-header">
+        <div>
+          <h1 className="page-title" style={{ marginBottom: 0 }}>Pedidos</h1>
+          <WavyUnderline width={110} color="#FFB067" />
+        </div>
+        <div className="flex items-center gap-sm">
+          <div className="doodle-float-delay">
+            <ClipboardDoodle size={45} />
+          </div>
+          <button className="btn btn--primary btn--sm" onClick={() => setShowAdd(true)}>➕ Nuevo</button>
+        </div>
       </div>
 
       {/* Summary */}

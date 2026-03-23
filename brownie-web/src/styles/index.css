@@ -27,6 +27,10 @@
 body {
   font-family: 'Nunito', system-ui, -apple-system, sans-serif;
   background: var(--bg);
+  background-image:
+    radial-gradient(circle at 20% 50%, rgba(126,207,179,0.06) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255,176,103,0.06) 0%, transparent 50%),
+    radial-gradient(circle at 50% 80%, rgba(93,58,26,0.03) 0%, transparent 50%);
   color: var(--text);
   min-height: 100vh;
 }
@@ -264,3 +268,80 @@ label {
 
 .animate-in { animation: fadeIn 0.3s ease; }
 .animate-scale { animation: scaleIn 0.25s ease; }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-3deg); }
+  75% { transform: rotate(3deg); }
+}
+
+@keyframes sparkle {
+  0%, 100% { opacity: 0.4; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+@keyframes confettiFall {
+  0% { opacity: 1; transform: translateY(0) rotate(0deg); }
+  100% { opacity: 0; transform: translateY(60px) rotate(360deg); }
+}
+
+/* ── Doodle helpers ── */
+.doodle-float { animation: float 3s ease-in-out infinite; }
+.doodle-wiggle { animation: wiggle 2s ease-in-out infinite; }
+.doodle-sparkle { animation: sparkle 2s ease-in-out infinite; }
+.doodle-float-delay { animation: float 3s ease-in-out infinite; animation-delay: 1s; }
+
+.doodle-header {
+  position: relative;
+  overflow: visible;
+}
+
+.doodle-corner {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.doodle-corner--tr { top: -10px; right: -5px; }
+.doodle-corner--tl { top: -10px; left: -5px; }
+
+/* ── Section Header with doodle ── */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+}
+
+.section-header__doodle {
+  flex-shrink: 0;
+}
+
+/* ── Empty state ── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 16px;
+}
+
+.empty-state__text {
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+/* ── Decorative divider ── */
+.doodle-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 0;
+  opacity: 0.5;
+}

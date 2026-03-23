@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import useBrownieStore, { FLAVORS } from '../store/useStore'
 import { playDeleteSound } from '../services/sounds'
+import { BrownieDoodle, CrownDoodle, SparkleCluster, WavyUnderline, SleepyFace, MoneyDoodle } from './Doodles'
 
 function formatMoney(n) {
   return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(n)
@@ -29,22 +30,30 @@ export default function Dashboard() {
 
   return (
     <div className="page flex-col gap-lg animate-in">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* Header with doodles */}
+      <div className="section-header">
         <div>
-          <h1 style={{ fontSize: '1.6rem', fontWeight: 900 }}>¡Hola, Chef! 👩‍🍳</h1>
-          <p className="text-secondary text-sm">
+          <div className="flex items-center gap-sm">
+            <h1 style={{ fontSize: '1.6rem', fontWeight: 900 }}>¡Hola, Chef!</h1>
+            <div className="doodle-wiggle">
+              <CrownDoodle size={36} />
+            </div>
+          </div>
+          <WavyUnderline width={180} color="#FFB067" />
+          <p className="text-secondary text-sm" style={{ marginTop: 4 }}>
             {new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
         </div>
-        <span style={{ fontSize: '2.5rem' }}>🍫</span>
+        <div className="doodle-float section-header__doodle">
+          <BrownieDoodle size={75} />
+        </div>
       </div>
 
       {/* Stock Alerts */}
       {lowStock.length > 0 && (
         <div className="card card--danger animate-in">
           <div className="flex items-center gap-sm mb-md">
-            <span>⚠️</span>
+            <span style={{ fontSize: '1.2rem' }}>⚠️</span>
             <strong style={{ color: 'var(--danger)' }}>Alertas de Stock</strong>
           </div>
           {lowStock.map(f => (
@@ -57,9 +66,12 @@ export default function Dashboard() {
       )}
 
       {/* Today Summary */}
-      <div className="card">
+      <div className="card" style={{ position: 'relative', overflow: 'visible' }}>
+        <div className="doodle-corner doodle-corner--tr doodle-sparkle">
+          <SparkleCluster size={35} />
+        </div>
         <div className="flex items-center gap-sm mb-md">
-          <span style={{ fontSize: '1.3rem' }}>📊</span>
+          <MoneyDoodle size={28} />
           <strong>Resumen del Día</strong>
         </div>
         <div className="flex justify-between text-center">
@@ -83,11 +95,11 @@ export default function Dashboard() {
 
       {/* Stock per Flavor */}
       <div className="flex gap-sm">
-        {FLAVORS.map(f => (
+        {FLAVORS.map((f, i) => (
           <div
             key={f.id}
             className="card card--sm flex-col items-center text-center"
-            style={{ flex: 1, borderColor: f.color, padding: '12px 6px' }}
+            style={{ flex: 1, borderColor: f.color, padding: '12px 6px', animationDelay: `${i * 0.1}s` }}
           >
             <span style={{ fontSize: '1.8rem' }}>{f.icon}</span>
             <strong
@@ -103,11 +115,19 @@ export default function Dashboard() {
 
       {/* Recent Sales */}
       <div>
-        <strong className="mb-md" style={{ display: 'block' }}>Ventas Recientes</strong>
+        <div className="flex items-center gap-sm mb-md">
+          <strong>Ventas Recientes</strong>
+          <div className="doodle-sparkle" style={{ opacity: 0.6 }}>
+            <SparkleCluster size={20} />
+          </div>
+        </div>
         {todaySales.length === 0 ? (
-          <div className="card card--subtle text-center text-secondary">
-            <span style={{ fontSize: '1.5rem' }}>📭</span>
-            <p className="mt-sm">No hay ventas hoy todavía</p>
+          <div className="card card--subtle">
+            <div className="empty-state">
+              <SleepyFace size={70} />
+              <p className="empty-state__text">No hay ventas hoy todavía</p>
+              <p className="text-xs text-secondary">¡Ve al Punto de Venta para empezar!</p>
+            </div>
           </div>
         ) : (
           <div className="flex-col gap-sm">

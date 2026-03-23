@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import useBrownieStore, { FLAVORS, calculateTotal, calculateCost } from '../store/useStore'
+import { ChartDoodle, WavyUnderline, CrownDoodle, SparkleCluster } from './Doodles'
 
 function formatMoney(n) {
   return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(n)
@@ -52,7 +53,15 @@ export default function Reports() {
 
   return (
     <div className="page flex-col gap-lg animate-in">
-      <h1 className="page-title">Reportes</h1>
+      <div className="section-header">
+        <div>
+          <h1 className="page-title" style={{ marginBottom: 0 }}>Reportes</h1>
+          <WavyUnderline width={115} color="#7ECFB3" />
+        </div>
+        <div className="doodle-float section-header__doodle">
+          <ChartDoodle size={55} />
+        </div>
+      </div>
 
       {/* Month Picker */}
       <div className="flex items-center justify-between">
@@ -63,9 +72,21 @@ export default function Reports() {
 
       {/* Profit Card */}
       <div className={`card ${realProfit >= 0 ? 'card--success' : 'card--danger'} text-center`}>
-        <div style={{ fontSize: '2.5rem', marginBottom: 8 }}>
-          {realProfit >= 0 ? '📈' : '📉'}
+        <div style={{ position: 'relative', display: 'inline-block' }}>
+          {realProfit > 0 && (
+            <div className="doodle-wiggle" style={{ position: 'absolute', top: -18, right: -20 }}>
+              <CrownDoodle size={30} />
+            </div>
+          )}
+          <div style={{ fontSize: '2.5rem', marginBottom: 8 }}>
+            {realProfit >= 0 ? '📈' : '📉'}
+          </div>
         </div>
+        {realProfit > 0 && (
+          <div className="doodle-sparkle" style={{ position: 'absolute', top: 8, right: 12 }}>
+            <SparkleCluster size={30} />
+          </div>
+        )}
         <p className="text-secondary font-bold">Ganancia Real</p>
         <strong
           className="text-2xl"
