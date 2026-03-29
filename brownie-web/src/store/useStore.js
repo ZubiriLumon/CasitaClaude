@@ -1,11 +1,27 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-// Brownie flavors
-export const FLAVORS = [
+// Default flavors (used only on first launch)
+export const DEFAULT_FLAVORS = [
   { id: 'tripleChocolate', name: 'Triple Chocolate', icon: '🍫', color: '#3E2723' },
   { id: 'chokis', name: 'Chokis', icon: '🍪', color: '#A1887F' },
   { id: 'oreo', name: 'Oreo', icon: '🖤', color: '#37474F' },
+]
+
+// Emoji options for flavor picker
+export const FLAVOR_ICONS = [
+  '🍫', '🍪', '🖤', '🤍', '🍓', '🫐', '🥜', '🍌', '🍑', '🧁',
+  '🎂', '🍰', '☕', '🍵', '🥛', '🍯', '🌰', '🟤', '⬛', '🔵',
+  '🟣', '🟢', '🩷', '🩵', '💛', '❤️', '✨', '⭐', '💜', '🤎',
+]
+
+// Color options for flavor picker
+export const FLAVOR_COLORS = [
+  '#3E2723', '#4E342E', '#5D4037', '#6D4C41', '#795548',
+  '#8D6E63', '#A1887F', '#37474F', '#455A64', '#546E7A',
+  '#880E4F', '#AD1457', '#C62828', '#D84315', '#E65100',
+  '#F57F17', '#827717', '#33691E', '#1B5E20', '#004D40',
+  '#006064', '#01579B', '#1A237E', '#311B92', '#4A148C',
 ]
 
 // Raw material categories
@@ -27,11 +43,6 @@ export const PROMO_PRESETS = [
   { label: '2×$40', pairPrice: 40, singlePrice: 20 },
 ]
 
-/**
- * Discount formula: (total/2)*pairPrice + (total%2)*singlePrice
- * Default: 2x$55 / $30 individual
- * Promo mode: custom pair/single price
- */
 export function calculateTotal(totalUnits, pairPrice = PRICE_PAIR, singlePrice = PRICE_SINGLE) {
   const pairs = Math.floor(totalUnits / 2)
   const remainder = totalUnits % 2
@@ -45,6 +56,35 @@ export function calculateCost(totalUnits) {
 const useBrownieStore = create(
   persist(
     (set, get) => ({
+      // ── Flavors (dynamic) ──
+      flavors: DEFAULT_FLAVORS,
+
+      addFlavor: (flavor) => set(state => {
+        const id = flavor.name.toLowerCase().replace(/\s+/g, '_') + '_' + Date.now()
+        const newFlavor = { id, ...flavor }
+        return {
+          flavors: [...state.flavors, newFlavor],
+          inventory: { ...state.inventory, [id]: 0 },
+        }
+      }),
+
+      updateFlavor: (id, updates) => set(state => ({
+        flavors: state.flavors.map(f => f.id === id ? { ...f, ...updates } : f),
+      })),
+
+      deleteFlavor: (id) => set(state => {
+        const newInventory = { ...state.inventory }
+        delete newInventory[id]
+        // Also clean from cart
+        const newCart = { ...state.cart }
+        delete newCart[id]
+        return {
+          flavors: state.flavors.filter(f => f.id !== id),
+          inventory: newInventory,
+          cart: newCart,
+        }
+      }),
+
       // ── Inventory ──
       inventory: {
         tripleChocolate: 0,
@@ -59,7 +99,6 @@ const useBrownieStore = create(
         }
       })),
 
-      // Directly set stock for a flavor (for corrections)
       setStock: (flavorId, quantity) => set(state => ({
         inventory: {
           ...state.inventory,
@@ -129,7 +168,6 @@ const useBrownieStore = create(
           totalBrownies: totalUnits,
         }
 
-        // Deduct stock
         const newInventory = { ...inventory }
         for (const [flavorId, qty] of Object.entries(cart)) {
           newInventory[flavorId] = Math.max(0, (newInventory[flavorId] || 0) - qty)
@@ -142,7 +180,6 @@ const useBrownieStore = create(
         }
       }),
 
-      // Delete a sale and restore its stock
       deleteSale: (id) => set(state => {
         const sale = state.sales.find(s => s.id === id)
         if (!sale) return state
@@ -216,8 +253,8 @@ const useBrownieStore = create(
       },
 
       getLowStockFlavors: () => {
-        const { inventory } = get()
-        return FLAVORS.filter(f => (inventory[f.id] || 0) < 5)
+        const { inventory, flavors } = get()
+        return flavors.filter(f => (inventory[f.id] || 0) < 5)
       },
     }),
     {

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import useBrownieStore, { FLAVORS } from '../store/useStore'
+import useBrownieStore from '../store/useStore'
 import { playDeleteSound } from '../services/sounds'
 import { BrownieDoodle, CrownDoodle, SparkleCluster, WavyUnderline, SleepyFace, MoneyDoodle } from './Doodles'
 
@@ -12,6 +12,7 @@ export default function Dashboard() {
   const getTodaySales = useBrownieStore(s => s.getTodaySales)
   const getLowStockFlavors = useBrownieStore(s => s.getLowStockFlavors)
   const deleteSale = useBrownieStore(s => s.deleteSale)
+  const flavors = useBrownieStore(s => s.flavors)
 
   const [confirmDelete, setConfirmDelete] = useState(null)
 
@@ -95,7 +96,7 @@ export default function Dashboard() {
 
       {/* Stock per Flavor */}
       <div className="flex gap-sm">
-        {FLAVORS.map((f, i) => (
+        {flavors.map((f, i) => (
           <div
             key={f.id}
             className="card card--sm flex-col items-center text-center"
@@ -140,7 +141,7 @@ export default function Dashboard() {
                       {new Date(sale.date).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
                       {' · '}
                       {sale.items.map(i => {
-                        const f = FLAVORS.find(fl => fl.id === i.flavorId)
+                        const f = flavors.find(fl => fl.id === i.flavorId)
                         return `${f?.icon || ''} ${i.quantity}`
                       }).join('  ')}
                     </p>

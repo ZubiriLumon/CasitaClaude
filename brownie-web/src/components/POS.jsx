@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import useBrownieStore, { FLAVORS, PROMO_PRESETS } from '../store/useStore'
+import useBrownieStore, { PROMO_PRESETS } from '../store/useStore'
 import { playCashSound, playAddSound, playRemoveSound } from '../services/sounds'
 import { CelebrationDoodle, EmptyCartDoodle, SparkleCluster, WavyUnderline } from './Doodles'
 
@@ -15,6 +15,7 @@ export default function POS() {
   const clearCart = useBrownieStore(s => s.clearCart)
   const completeSale = useBrownieStore(s => s.completeSale)
   const getCartTotal = useBrownieStore(s => s.getCartTotal)
+  const flavors = useBrownieStore(s => s.flavors)
 
   const [showConfirm, setShowConfirm] = useState(false)
   const [lastTotal, setLastTotal] = useState(0)
@@ -131,7 +132,7 @@ export default function POS() {
 
       {/* Flavor Selection */}
       <div className="flex-col gap-sm">
-        {FLAVORS.map(f => {
+        {flavors.map(f => {
           const stock = inventory[f.id] || 0
           const inCart = cart[f.id] || 0
           return (

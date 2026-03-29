@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import useBrownieStore, { FLAVORS, calculateTotal, calculateCost } from '../store/useStore'
+import useBrownieStore, { calculateTotal, calculateCost } from '../store/useStore'
 import { ChartDoodle, WavyUnderline, CrownDoodle, SparkleCluster } from './Doodles'
 
 function formatMoney(n) {
@@ -14,6 +14,7 @@ const MONTH_NAMES = [
 export default function Reports() {
   const getMonthSales = useBrownieStore(s => s.getMonthSales)
   const getMonthExpenses = useBrownieStore(s => s.getMonthExpenses)
+  const flavors = useBrownieStore(s => s.flavors)
 
   const now = new Date()
   const [year, setYear] = useState(now.getFullYear())
@@ -36,7 +37,7 @@ export default function Reports() {
       flavorCounts[item.flavorId] = (flavorCounts[item.flavorId] || 0) + item.quantity
     })
   })
-  const flavorData = FLAVORS
+  const flavorData = flavors
     .map(f => ({ ...f, quantity: flavorCounts[f.id] || 0 }))
     .sort((a, b) => b.quantity - a.quantity)
   const maxQty = Math.max(...flavorData.map(f => f.quantity), 1)

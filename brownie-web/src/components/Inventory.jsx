@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import useBrownieStore, { FLAVORS, MATERIAL_CATEGORIES } from '../store/useStore'
+import useBrownieStore, { MATERIAL_CATEGORIES, FLAVOR_ICONS, FLAVOR_COLORS } from '../store/useStore'
 import { playRestockSound, playExpenseSound, playDeleteSound } from '../services/sounds'
 import { BoxDoodle, WavyUnderline, SparkleCluster } from './Doodles'
 
@@ -10,15 +10,19 @@ function formatMoney(n) {
 export default function Inventory() {
   const inventory = useBrownieStore(s => s.inventory)
   const expenses = useBrownieStore(s => s.expenses)
+  const flavors = useBrownieStore(s => s.flavors)
   const restockFlavor = useBrownieStore(s => s.restockFlavor)
   const setStock = useBrownieStore(s => s.setStock)
   const addExpense = useBrownieStore(s => s.addExpense)
   const deleteExpense = useBrownieStore(s => s.deleteExpense)
+  const addFlavor = useBrownieStore(s => s.addFlavor)
+  const updateFlavor = useBrownieStore(s => s.updateFlavor)
+  const deleteFlavor = useBrownieStore(s => s.deleteFlavor)
 
   const [tab, setTab] = useState('stock')
   const [showRestock, setShowRestock] = useState(false)
   const [showAddExpense, setShowAddExpense] = useState(false)
-  const [rFlavor, setRFlavor] = useState('tripleChocolate')
+  const [rFlavor, setRFlavor] = useState('')
   const [rQty, setRQty] = useState('')
 
   // Edit stock
@@ -29,6 +33,14 @@ export default function Inventory() {
   const [eAmount, setEAmount] = useState('')
   const [eCat, setECat] = useState('Harina')
   const [eDesc, setEDesc] = useState('')
+
+  // Flavor management
+  const [showAddFlavor, setShowAddFlavor] = useState(false)
+  const [showEditFlavor, setShowEditFlavor] = useState(null)
+  const [fName, setFName] = useState('')
+  const [fIcon, setFIcon] = useState('🍫')
+  const [fColor, setFColor] = useState('#5D4037')
+  const [confirmDeleteFlavor, setConfirmDeleteFlavor] = useState(null)
 
   const totalStock = Object.values(inventory).reduce((s, v) => s + v, 0)
 
@@ -48,12 +60,41 @@ export default function Inventory() {
 
   function handleRestock() {
     const qty = parseInt(rQty)
-    if (qty > 0) {
+    if (qty > 0 && rFlavor) {
       restockFlavor(rFlavor, qty)
       playRestockSound()
       setRQty('')
+      setRFlavor('')
       setShowRestock(false)
     }
+  }
+
+  function handleAddFlavor() {
+    if (!fName.trim()) return
+    addFlavor({ name: fName.trim(), icon: fIcon, color: fColor })
+    playRestockSound()
+    setFName(''); setFIcon('🍫'); setFColor('#5D4037')
+    setShowAddFlavor(false)
+  }
+
+  function openEditFlavor(f) {
+    setShowEditFlavor(f.id)
+    setFName(f.name)
+    setFIcon(f.icon)
+    setFColor(f.color)
+  }
+
+  function handleUpdateFlavor() {
+    if (!fName.trim() || !showEditFlavor) return
+    updateFlavor(showEditFlavor, { name: fName.trim(), icon: fIcon, color: fColor })
+    setFName(''); setFIcon('🍫'); setFColor('#5D4037')
+    setShowEditFlavor(null)
+  }
+
+  function handleDeleteFlavor(id) {
+    deleteFlavor(id)
+    playDeleteSound()
+    setConfirmDeleteFlavor(null)
   }
 
   function handleEditStock(flavorId) {
@@ -125,13 +166,13 @@ export default function Inventory() {
               <p className="text-sm text-secondary">Stock Total</p>
               <strong className="text-xl">{totalStock} unidades</strong>
             </div>
-            <button className="btn btn--accent btn--sm" onClick={() => setShowRestock(true)}>
+            <button className="btn btn--accent btn--sm" onClick={() => { setShowRestock(true); if (!rFlavor && flavors.length > 0) setRFlavor(flavors[0].id) }}>
               ➕ Resurtir
             </button>
           </div>
 
           {/* Per-flavor cards */}
-          {FLAVORS.map(f => {
+          {flavors.map(f => {
             const stock = inventory[f.id] || 0
             const isLow = stock < 5
             const isEditing = editingFlavor === f.id
@@ -184,6 +225,156 @@ export default function Inventory() {
             )
           })}
 
+          {/* Flavor Management */}
+          <div className="card card--subtle">
+            <div className="flex items-center justify-between mb-md">
+              <strong>Sabores</strong>
+              <button className="btn btn--primary btn--sm" onClick={() => setShowAddFlavor(true)}>➕ Nuevo sabor</button>
+            </div>
+            {flavors.map(f => (
+              <div key={f.id} className="flex items-center justify-between" style={{ padding: '6px 0', borderBottom: '1px solid #EFEBE9' }}>
+                <div className="flex items-center gap-sm">
+                  <span style={{ fontSize: '1.4rem' }}>{f.icon}</span>
+                  <span style={{ fontWeight: 700 }}>{f.name}</span>
+                  <span style={{ width: 14, height: 14, borderRadius: '50%', background: f.color, display: 'inline-block', border: '1.5px solid #0002' }} />
+                </div>
+                <div className="flex items-center gap-sm">
+                  <button onClick={() => openEditFlavor(f)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }} title="Editar sabor">✏️</button>
+                  <button onClick={() => setConfirmDeleteFlavor(f.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }} title="Eliminar sabor">🗑️</button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Add Flavor Modal */}
+          {showAddFlavor && (
+            <div className="overlay" onClick={() => setShowAddFlavor(false)}>
+              <div className="modal animate-scale" onClick={e => e.stopPropagation()}>
+                <h3 style={{ marginBottom: 16, fontWeight: 800 }}>🍫 Nuevo Sabor</h3>
+                <div className="flex-col gap-md">
+                  <div>
+                    <label>Nombre</label>
+                    <input className="input" placeholder="Ej: Oreo de Vainilla" value={fName} onChange={e => setFName(e.target.value)} />
+                  </div>
+                  <div>
+                    <label>Ícono</label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+                      {FLAVOR_ICONS.map(icon => (
+                        <button
+                          key={icon}
+                          onClick={() => setFIcon(icon)}
+                          style={{
+                            fontSize: '1.4rem', padding: '4px 6px', borderRadius: 8, cursor: 'pointer',
+                            border: fIcon === icon ? '2.5px solid var(--primary)' : '2px solid transparent',
+                            background: fIcon === icon ? 'rgba(126,207,179,0.15)' : 'none',
+                          }}
+                        >{icon}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label>Color</label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+                      {FLAVOR_COLORS.map(color => (
+                        <button
+                          key={color}
+                          onClick={() => setFColor(color)}
+                          style={{
+                            width: 28, height: 28, borderRadius: 8, cursor: 'pointer',
+                            background: color,
+                            border: fColor === color ? '3px solid var(--primary)' : '2px solid #0002',
+                            boxShadow: fColor === color ? '0 0 0 2px var(--primary)' : 'none',
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 8, padding: 12, borderRadius: 12, border: `2.5px solid ${fColor}`, background: '#fff', display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: '1.8rem' }}>{fIcon}</span>
+                    <strong>{fName || 'Vista previa'}</strong>
+                  </div>
+                  <div className="flex gap-sm">
+                    <button className="btn btn--ghost btn--block" onClick={() => { setShowAddFlavor(false); setFName(''); setFIcon('🍫'); setFColor('#5D4037') }}>Cancelar</button>
+                    <button className="btn btn--primary btn--block" onClick={handleAddFlavor} disabled={!fName.trim()}>Crear Sabor</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Edit Flavor Modal */}
+          {showEditFlavor && (
+            <div className="overlay" onClick={() => { setShowEditFlavor(null); setFName(''); setFIcon('🍫'); setFColor('#5D4037') }}>
+              <div className="modal animate-scale" onClick={e => e.stopPropagation()}>
+                <h3 style={{ marginBottom: 16, fontWeight: 800 }}>✏️ Editar Sabor</h3>
+                <div className="flex-col gap-md">
+                  <div>
+                    <label>Nombre</label>
+                    <input className="input" value={fName} onChange={e => setFName(e.target.value)} />
+                  </div>
+                  <div>
+                    <label>Ícono</label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+                      {FLAVOR_ICONS.map(icon => (
+                        <button
+                          key={icon}
+                          onClick={() => setFIcon(icon)}
+                          style={{
+                            fontSize: '1.4rem', padding: '4px 6px', borderRadius: 8, cursor: 'pointer',
+                            border: fIcon === icon ? '2.5px solid var(--primary)' : '2px solid transparent',
+                            background: fIcon === icon ? 'rgba(126,207,179,0.15)' : 'none',
+                          }}
+                        >{icon}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label>Color</label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+                      {FLAVOR_COLORS.map(color => (
+                        <button
+                          key={color}
+                          onClick={() => setFColor(color)}
+                          style={{
+                            width: 28, height: 28, borderRadius: 8, cursor: 'pointer',
+                            background: color,
+                            border: fColor === color ? '3px solid var(--primary)' : '2px solid #0002',
+                            boxShadow: fColor === color ? '0 0 0 2px var(--primary)' : 'none',
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 8, padding: 12, borderRadius: 12, border: `2.5px solid ${fColor}`, background: '#fff', display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: '1.8rem' }}>{fIcon}</span>
+                    <strong>{fName || 'Vista previa'}</strong>
+                  </div>
+                  <div className="flex gap-sm">
+                    <button className="btn btn--ghost btn--block" onClick={() => { setShowEditFlavor(null); setFName(''); setFIcon('🍫'); setFColor('#5D4037') }}>Cancelar</button>
+                    <button className="btn btn--primary btn--block" onClick={handleUpdateFlavor} disabled={!fName.trim()}>Guardar</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Delete Flavor Confirmation */}
+          {confirmDeleteFlavor && (
+            <div className="overlay" onClick={() => setConfirmDeleteFlavor(null)}>
+              <div className="modal text-center animate-scale" onClick={e => e.stopPropagation()}>
+                <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>⚠️</div>
+                <h3 style={{ fontWeight: 800, marginBottom: 8 }}>¿Eliminar este sabor?</h3>
+                <p className="text-sm text-secondary" style={{ marginBottom: 16 }}>
+                  Se eliminará el sabor, su stock y cualquier referencia en el carrito. Las ventas pasadas no se afectan.
+                </p>
+                <div className="flex gap-sm">
+                  <button className="btn btn--ghost btn--block" onClick={() => setConfirmDeleteFlavor(null)}>Cancelar</button>
+                  <button className="btn btn--danger btn--block" onClick={() => handleDeleteFlavor(confirmDeleteFlavor)}>Sí, eliminar</button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Restock Modal */}
           {showRestock && (
             <div className="overlay" onClick={() => setShowRestock(false)}>
@@ -193,7 +384,8 @@ export default function Inventory() {
                   <div>
                     <label>Sabor</label>
                     <select className="input select" value={rFlavor} onChange={e => setRFlavor(e.target.value)}>
-                      {FLAVORS.map(f => (
+                      {!rFlavor && <option value="">Selecciona sabor...</option>}
+                      {flavors.map(f => (
                         <option key={f.id} value={f.id}>{f.icon} {f.name}</option>
                       ))}
                     </select>
