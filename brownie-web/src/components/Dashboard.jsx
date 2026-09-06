@@ -13,11 +13,13 @@ export default function Dashboard() {
   const getLowStockFlavors = useBrownieStore(s => s.getLowStockFlavors)
   const deleteSale = useBrownieStore(s => s.deleteSale)
   const flavors = useBrownieStore(s => s.flavors)
+  const getBasketStats = useBrownieStore(s => s.getBasketStats)
 
   const [confirmDelete, setConfirmDelete] = useState(null)
 
   const todaySales = getTodaySales()
   const lowStock = getLowStockFlavors()
+  const basket = getBasketStats()
 
   const todayRevenue = todaySales.reduce((s, sale) => s + sale.totalAmount, 0)
   const todayProfit = todaySales.reduce((s, sale) => s + (sale.totalAmount - sale.totalCost), 0)
@@ -49,6 +51,36 @@ export default function Dashboard() {
           <BrownieDoodle size={75} />
         </div>
       </div>
+
+      {/* Basket progress */}
+      {basket.loaded > 0 && (
+        <div className="card card--accent">
+          <div className="flex items-center justify-between mb-md">
+            <div className="flex items-center gap-sm">
+              <span style={{ fontSize: '1.3rem' }}>🧺</span>
+              <strong>Canasta de Hoy</strong>
+            </div>
+            <span className="text-sm text-secondary">{basket.trays} × {basket.perTray}</span>
+          </div>
+          <div className="progress-bar">
+            <div
+              className="progress-fill"
+              style={{
+                width: `${basket.pct}%`,
+                background: basket.pct >= 100 ? 'var(--success)' : 'var(--accent)',
+              }}
+            />
+          </div>
+          <div className="flex justify-between" style={{ marginTop: 8 }}>
+            <span className="text-sm">
+              Vendidos <strong>{basket.sold}</strong> de <strong>{basket.loaded}</strong>
+            </span>
+            <span className="text-sm" style={{ fontWeight: 800, color: basket.remaining === 0 ? 'var(--success)' : 'var(--secondary)' }}>
+              {basket.remaining === 0 ? '🎉 ¡Todo vendido!' : `Faltan ${basket.remaining}`}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Stock Alerts */}
       {lowStock.length > 0 && (

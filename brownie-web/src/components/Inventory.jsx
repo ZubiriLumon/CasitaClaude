@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import useBrownieStore, { MATERIAL_CATEGORIES, FLAVOR_ICONS, FLAVOR_COLORS } from '../store/useStore'
+import useBrownieStore, { MATERIAL_CATEGORIES, FLAVOR_ICONS, FLAVOR_COLORS, TRAY_PRESETS } from '../store/useStore'
 import { playRestockSound, playExpenseSound, playDeleteSound } from '../services/sounds'
 import { BoxDoodle, WavyUnderline, SparkleCluster } from './Doodles'
 
@@ -18,9 +18,20 @@ export default function Inventory() {
   const addFlavor = useBrownieStore(s => s.addFlavor)
   const updateFlavor = useBrownieStore(s => s.updateFlavor)
   const deleteFlavor = useBrownieStore(s => s.deleteFlavor)
+  const basket = useBrownieStore(s => s.basket)
+  const setBasketConfig = useBrownieStore(s => s.setBasketConfig)
+  const loadBasket = useBrownieStore(s => s.loadBasket)
+  const resetBasket = useBrownieStore(s => s.resetBasket)
+  const getBasketStats = useBrownieStore(s => s.getBasketStats)
 
   const [tab, setTab] = useState('stock')
   const [showRestock, setShowRestock] = useState(false)
+
+  // Basket loading
+  const [showLoadBasket, setShowLoadBasket] = useState(false)
+  const [loadout, setLoadout] = useState({})
+  const [loadMode, setLoadMode] = useState('replace')
+  const [confirmResetBasket, setConfirmResetBasket] = useState(false)
   const [showAddExpense, setShowAddExpense] = useState(false)
   const [rFlavor, setRFlavor] = useState('')
   const [rQty, setRQty] = useState('')
@@ -43,6 +54,8 @@ export default function Inventory() {
   const [confirmDeleteFlavor, setConfirmDeleteFlavor] = useState(null)
 
   const totalStock = Object.values(inventory).reduce((s, v) => s + v, 0)
+  const stats = getBasketStats()
+  const loadoutTotal = flavors.reduce((s, f) => s + (loadout[f.id] || 0), 0)
 
   // Current month expenses
   const now = new Date()
@@ -67,6 +80,38 @@ export default function Inventory() {
       setRFlavor('')
       setShowRestock(false)
     }
+  }
+
+  function openLoadBasket() {
+    // Pre-fill one full tray per flavor — that's how we bake: one flavor per tray.
+    const preset = {}
+    flavors.forEach(f => { preset[f.id] = basket.perTray })
+    setLoadout(preset)
+    setLoadMode('replace')
+    setShowLoadBasket(true)
+  }
+
+  function setLoadQty(flavorId, qty) {
+    setLoadout(prev => ({ ...prev, [flavorId]: Math.max(0, qty) }))
+  }
+
+  function fillAllTrays(qty) {
+    const preset = {}
+    flavors.forEach(f => { preset[f.id] = qty })
+    setLoadout(preset)
+  }
+
+  function handleLoadBasket() {
+    if (loadoutTotal === 0 && loadMode === 'add') return
+    loadBasket(loadout, loadMode)
+    playRestockSound()
+    setShowLoadBasket(false)
+  }
+
+  function handleResetBasket() {
+    resetBasket()
+    playDeleteSound()
+    setConfirmResetBasket(false)
   }
 
   function handleAddFlavor() {
@@ -160,15 +205,70 @@ export default function Inventory() {
 
       {tab === 'stock' ? (
         <>
-          {/* Total + Restock button */}
-          <div className="card flex items-center justify-between">
-            <div>
-              <p className="text-sm text-secondary">Stock Total</p>
-              <strong className="text-xl">{totalStock} unidades</strong>
+          {/* Basket progress */}
+          <div className="card card--accent">
+            <div className="flex items-center justify-between mb-md">
+              <div className="flex items-center gap-sm">
+                <span style={{ fontSize: '1.4rem' }}>🧺</span>
+                <div>
+                  <strong>Canasta de Hoy</strong>
+                  <p className="text-xs text-secondary">
+                    {basket.trays} charolas × {basket.perTray} = {stats.target} brownies
+                  </p>
+                </div>
+              </div>
+              <div className="text-center">
+                <strong className="text-xl">{totalStock}</strong>
+                <p className="text-xs text-secondary">en canasta</p>
+              </div>
             </div>
-            <button className="btn btn--accent btn--sm" onClick={() => { setShowRestock(true); if (!rFlavor && flavors.length > 0) setRFlavor(flavors[0].id) }}>
-              ➕ Resurtir
-            </button>
+
+            {stats.loaded > 0 ? (
+              <>
+                <div className="progress-bar">
+                  <div
+                    className="progress-fill"
+                    style={{
+                      width: `${stats.pct}%`,
+                      background: stats.pct >= 100 ? 'var(--success)' : 'var(--accent)',
+                    }}
+                  />
+                </div>
+                <div className="flex justify-between" style={{ marginTop: 8 }}>
+                  <span className="text-sm">
+                    Vendidos <strong>{stats.sold}</strong> de <strong>{stats.loaded}</strong>
+                  </span>
+                  <span className="text-sm" style={{ fontWeight: 800, color: stats.remaining === 0 ? 'var(--success)' : 'var(--secondary)' }}>
+                    {stats.remaining === 0 ? '🎉 ¡Todo vendido!' : `Faltan ${stats.remaining}`}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-secondary text-center" style={{ padding: '8px 0' }}>
+                Carga la canasta para empezar a llevar la cuenta
+              </p>
+            )}
+
+            <div className="flex gap-sm" style={{ marginTop: 12 }}>
+              <button className="btn btn--accent btn--sm btn--block" onClick={openLoadBasket}>
+                🧺 Cargar canasta
+              </button>
+              <button
+                className="btn btn--ghost btn--sm btn--block"
+                onClick={() => { setShowRestock(true); if (!rFlavor && flavors.length > 0) setRFlavor(flavors[0].id) }}
+              >
+                ➕ Resurtir uno
+              </button>
+            </div>
+            {stats.loaded > 0 && (
+              <button
+                className="btn btn--ghost btn--sm btn--block"
+                onClick={() => setConfirmResetBasket(true)}
+                style={{ marginTop: 8 }}
+              >
+                ♻️ Terminar salida
+              </button>
+            )}
           </div>
 
           {/* Per-flavor cards */}
@@ -375,6 +475,167 @@ export default function Inventory() {
             </div>
           )}
 
+          {/* Load Basket Modal */}
+          {showLoadBasket && (
+            <div className="overlay" onClick={() => setShowLoadBasket(false)}>
+              <div className="modal animate-scale" onClick={e => e.stopPropagation()}>
+                <h3 style={{ marginBottom: 4, fontWeight: 800 }}>🧺 Cargar Canasta</h3>
+                <p className="text-xs text-secondary" style={{ marginBottom: 16 }}>
+                  Una charola = un sabor. Ya viene prellenado con {basket.perTray} de cada uno.
+                </p>
+
+                {/* Tray config */}
+                <div className="card card--subtle card--sm" style={{ marginBottom: 12 }}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Charolas</span>
+                    <div className="flex items-center gap-sm">
+                      <button className="btn btn--ghost btn--sm" style={{ padding: '2px 10px' }}
+                        onClick={() => setBasketConfig({ trays: basket.trays - 1 })}>−</button>
+                      <strong style={{ minWidth: 24, textAlign: 'center' }}>{basket.trays}</strong>
+                      <button className="btn btn--ghost btn--sm" style={{ padding: '2px 10px' }}
+                        onClick={() => setBasketConfig({ trays: basket.trays + 1 })}>+</button>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between" style={{ marginTop: 6 }}>
+                    <span className="text-sm">Brownies por charola</span>
+                    <div className="flex items-center gap-sm">
+                      <button className="btn btn--ghost btn--sm" style={{ padding: '2px 10px' }}
+                        onClick={() => setBasketConfig({ perTray: basket.perTray - 1 })}>−</button>
+                      <strong style={{ minWidth: 24, textAlign: 'center' }}>{basket.perTray}</strong>
+                      <button className="btn btn--ghost btn--sm" style={{ padding: '2px 10px' }}
+                        onClick={() => setBasketConfig({ perTray: basket.perTray + 1 })}>+</button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick fills */}
+                <div className="flex gap-sm" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
+                  <button className="btn btn--accent btn--sm" onClick={() => fillAllTrays(basket.perTray)}>
+                    1 charola c/u
+                  </button>
+                  <button className="btn btn--ghost btn--sm" onClick={() => fillAllTrays(Math.floor(basket.perTray / 2))}>
+                    ½ charola c/u
+                  </button>
+                  <button className="btn btn--ghost btn--sm" onClick={() => fillAllTrays(0)}>
+                    Vaciar
+                  </button>
+                </div>
+
+                {/* Per-flavor steppers */}
+                <div className="flex-col gap-sm" style={{ maxHeight: '40vh', overflowY: 'auto', marginBottom: 12 }}>
+                  {flavors.map(f => {
+                    const qty = loadout[f.id] || 0
+                    return (
+                      <div key={f.id} className="card card--sm" style={{ borderColor: f.color, padding: 10 }}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-sm">
+                            <span style={{ fontSize: '1.4rem' }}>{f.icon}</span>
+                            <div>
+                              <strong className="text-sm">{f.name}</strong>
+                              <p className="text-xs text-secondary">
+                                {qty === 0 ? 'sin charola' : `${(qty / basket.perTray).toFixed(qty % basket.perTray === 0 ? 0 : 1)} charola${qty > basket.perTray ? 's' : ''}`}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-sm">
+                            <button className="btn btn--ghost btn--sm" style={{ padding: '4px 10px' }}
+                              onClick={() => setLoadQty(f.id, qty - 1)}>−</button>
+                            <input
+                              className="input"
+                              type="number"
+                              value={qty}
+                              onChange={e => setLoadQty(f.id, parseInt(e.target.value) || 0)}
+                              min="0"
+                              style={{ width: 56, textAlign: 'center', padding: 4, fontSize: '1rem', fontWeight: 800 }}
+                            />
+                            <button className="btn btn--ghost btn--sm" style={{ padding: '4px 10px' }}
+                              onClick={() => setLoadQty(f.id, qty + 1)}>+</button>
+                          </div>
+                        </div>
+                        <div className="flex gap-sm" style={{ marginTop: 6, flexWrap: 'wrap' }}>
+                          {TRAY_PRESETS.map(p => (
+                            <button
+                              key={p}
+                              onClick={() => setLoadQty(f.id, p)}
+                              className={`btn btn--sm ${qty === p ? 'btn--accent' : 'btn--ghost'}`}
+                              style={{ padding: '2px 10px', fontSize: '0.72rem' }}
+                            >
+                              {p}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Total vs target */}
+                <div
+                  className="flex items-center justify-between"
+                  style={{
+                    padding: 10, borderRadius: 12, marginBottom: 12,
+                    border: `2.5px solid ${loadoutTotal === stats.target ? 'var(--success)' : 'var(--accent-orange)'}`,
+                    background: '#fff',
+                  }}
+                >
+                  <span className="text-sm">Total a cargar</span>
+                  <strong className="text-lg" style={{ color: loadoutTotal === stats.target ? 'var(--success)' : 'var(--text)' }}>
+                    {loadoutTotal} / {stats.target}
+                  </strong>
+                </div>
+
+                {/* Mode */}
+                <div className="flex gap-sm" style={{ marginBottom: 12 }}>
+                  <button
+                    className={`btn btn--sm btn--block ${loadMode === 'replace' ? 'btn--primary' : 'btn--ghost'}`}
+                    onClick={() => setLoadMode('replace')}
+                  >
+                    Nueva salida
+                  </button>
+                  <button
+                    className={`btn btn--sm btn--block ${loadMode === 'add' ? 'btn--primary' : 'btn--ghost'}`}
+                    onClick={() => setLoadMode('add')}
+                  >
+                    Sumar al stock
+                  </button>
+                </div>
+                <p className="text-xs text-secondary" style={{ marginBottom: 12 }}>
+                  {loadMode === 'replace'
+                    ? 'Reemplaza el stock actual y reinicia el contador de la canasta.'
+                    : 'Suma estas cantidades a lo que ya traes, sin reiniciar el contador.'}
+                </p>
+
+                <div className="flex gap-sm">
+                  <button className="btn btn--ghost btn--block" onClick={() => setShowLoadBasket(false)}>Cancelar</button>
+                  <button
+                    className="btn btn--accent btn--block"
+                    onClick={handleLoadBasket}
+                    disabled={loadMode === 'add' && loadoutTotal === 0}
+                  >
+                    Cargar {loadoutTotal}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Reset Basket Confirmation */}
+          {confirmResetBasket && (
+            <div className="overlay" onClick={() => setConfirmResetBasket(false)}>
+              <div className="modal text-center animate-scale" onClick={e => e.stopPropagation()}>
+                <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>🧺</div>
+                <h3 style={{ fontWeight: 800, marginBottom: 8 }}>¿Terminar la salida?</h3>
+                <p className="text-sm text-secondary" style={{ marginBottom: 16 }}>
+                  Se reinicia el contador de la canasta. El stock que sobró y tus ventas no se tocan.
+                </p>
+                <div className="flex gap-sm">
+                  <button className="btn btn--ghost btn--block" onClick={() => setConfirmResetBasket(false)}>Cancelar</button>
+                  <button className="btn btn--primary btn--block" onClick={handleResetBasket}>Sí, terminar</button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Restock Modal */}
           {showRestock && (
             <div className="overlay" onClick={() => setShowRestock(false)}>
@@ -392,6 +653,18 @@ export default function Inventory() {
                   </div>
                   <div>
                     <label>Cantidad</label>
+                    <div className="flex gap-sm" style={{ marginBottom: 8, flexWrap: 'wrap' }}>
+                      {TRAY_PRESETS.map(p => (
+                        <button
+                          key={p}
+                          onClick={() => setRQty(String(p))}
+                          className={`btn btn--sm ${parseInt(rQty) === p ? 'btn--accent' : 'btn--ghost'}`}
+                          style={{ padding: '4px 12px' }}
+                        >
+                          {p === basket.perTray ? `${p} (1 charola)` : p}
+                        </button>
+                      ))}
+                    </div>
                     <input className="input" type="number" placeholder="Unidades" value={rQty} onChange={e => setRQty(e.target.value)} min="1" />
                   </div>
                   <div className="flex gap-sm">

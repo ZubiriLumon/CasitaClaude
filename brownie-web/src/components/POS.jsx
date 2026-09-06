@@ -16,6 +16,8 @@ export default function POS() {
   const completeSale = useBrownieStore(s => s.completeSale)
   const getCartTotal = useBrownieStore(s => s.getCartTotal)
   const flavors = useBrownieStore(s => s.flavors)
+  const getBasketStats = useBrownieStore(s => s.getBasketStats)
+  const basket = getBasketStats()
 
   const [showConfirm, setShowConfirm] = useState(false)
   const [lastTotal, setLastTotal] = useState(0)
@@ -85,6 +87,25 @@ export default function POS() {
           🔥 {promoActive ? 'Remate ON' : 'Remate'}
         </button>
       </div>
+
+      {/* Basket progress — how many left to sell */}
+      {basket.loaded > 0 && (
+        <div className="card card--sm" style={{ borderColor: 'var(--accent)', padding: 12 }}>
+          <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
+            <span className="text-sm">🧺 Faltan <strong>{basket.remaining}</strong> por vender</span>
+            <span className="text-xs text-secondary">{basket.sold}/{basket.loaded}</span>
+          </div>
+          <div className="progress-bar" style={{ height: 8 }}>
+            <div
+              className="progress-fill"
+              style={{
+                width: `${basket.pct}%`,
+                background: basket.pct >= 100 ? 'var(--success)' : 'var(--accent)',
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Promo Config */}
       {promoActive && (

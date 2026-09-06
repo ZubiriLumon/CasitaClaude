@@ -24,6 +24,13 @@ export const FLAVOR_COLORS = [
   '#006064', '#01579B', '#1A237E', '#311B92', '#4A148C',
 ]
 
+// Basket defaults: we always take 4 trays, 12 brownies per tray
+export const DEFAULT_TRAYS = 4
+export const DEFAULT_PER_TRAY = 12
+
+// Quick-add chips for restocking (multiples of a tray)
+export const TRAY_PRESETS = [6, 12, 24, 36, 48]
+
 // Raw material categories
 export const MATERIAL_CATEGORIES = [
   'Harina', 'Leche', 'Huevo', 'Chocolate', 'Mantequilla',
@@ -96,7 +103,12 @@ const useBrownieStore = create(
         inventory: {
           ...state.inventory,
           [flavorId]: (state.inventory[flavorId] || 0) + quantity,
-        }
+        },
+        basket: {
+          ...state.basket,
+          loaded: state.basket.loaded + quantity,
+          startedAt: state.basket.startedAt || new Date().toISOString(),
+        },
       })),
 
       setStock: (flavorId, quantity) => set(state => ({
@@ -105,6 +117,62 @@ const useBrownieStore = create(
           [flavorId]: Math.max(0, quantity),
         }
       })),
+
+      // ── Basket (la canasta de la salida) ──
+      basket: {
+        trays: DEFAULT_TRAYS,
+        perTray: DEFAULT_PER_TRAY,
+        loaded: 0,
+        startedAt: null,
+      },
+
+      setBasketConfig: ({ trays, perTray }) => set(state => ({
+        basket: {
+          ...state.basket,
+          trays: Math.max(1, trays ?? state.basket.trays),
+          perTray: Math.max(1, perTray ?? state.basket.perTray),
+        },
+      })),
+
+      // loadout: { [flavorId]: qty }. mode 'replace' overwrites stock, 'add' sums onto it.
+      loadBasket: (loadout, mode = 'replace') => set(state => {
+        const entries = Object.entries(loadout).filter(([, q]) => q > 0)
+        const added = entries.reduce((s, [, q]) => s + q, 0)
+        if (added === 0 && mode === 'add') return state
+
+        const newInventory = mode === 'replace'
+          ? Object.fromEntries(state.flavors.map(f => [f.id, Math.max(0, loadout[f.id] || 0)]))
+          : { ...state.inventory }
+
+        if (mode === 'add') {
+          for (const [flavorId, qty] of entries) {
+            newInventory[flavorId] = (newInventory[flavorId] || 0) + qty
+          }
+        }
+
+        return {
+          inventory: newInventory,
+          basket: {
+            ...state.basket,
+            loaded: mode === 'replace' ? added : state.basket.loaded + added,
+            startedAt: mode === 'replace' ? new Date().toISOString() : (state.basket.startedAt || new Date().toISOString()),
+          },
+        }
+      }),
+
+      resetBasket: () => set(state => ({
+        basket: { ...state.basket, loaded: 0, startedAt: null },
+      })),
+
+      getBasketStats: () => {
+        const { basket, inventory } = get()
+        const target = basket.trays * basket.perTray
+        const remaining = Object.values(inventory).reduce((s, v) => s + v, 0)
+        const loaded = basket.loaded
+        const sold = Math.max(0, loaded - remaining)
+        const pct = loaded > 0 ? Math.min(100, Math.round((sold / loaded) * 100)) : 0
+        return { ...basket, target, remaining, loaded, sold, pct }
+      },
 
       // ── Cart (POS) ──
       cart: {},
