@@ -2,6 +2,7 @@ import { useState } from 'react'
 import useBrownieStore, { PROMO_PRESETS } from '../store/useStore'
 import { playCashSound, playAddSound, playRemoveSound } from '../services/sounds'
 import { CelebrationDoodle, EmptyCartDoodle, SparkleCluster, WavyUnderline } from './Doodles'
+import { IconFlame, IconBasket, IconCart, IconTag, IconCoins, IconCheck, IconSparkle } from './Icons'
 
 function formatMoney(n) {
   return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(n)
@@ -84,7 +85,7 @@ export default function POS() {
           onClick={() => setPromoActive(!promoActive)}
           style={{ whiteSpace: 'nowrap' }}
         >
-          🔥 {promoActive ? 'Remate ON' : 'Remate'}
+          <IconFlame size={15} /> {promoActive ? 'Remate ON' : 'Remate'}
         </button>
       </div>
 
@@ -92,7 +93,9 @@ export default function POS() {
       {basket.loaded > 0 && (
         <div className="card card--sm" style={{ borderColor: 'var(--accent)', padding: 12 }}>
           <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
-            <span className="text-sm">🧺 Faltan <strong>{basket.remaining}</strong> por vender</span>
+            <span className="text-sm flex items-center gap-sm">
+              <IconBasket size={17} /> Faltan <strong>{basket.remaining}</strong> por vender
+            </span>
             <span className="text-xs text-secondary">{basket.sold}/{basket.loaded}</span>
           </div>
           <div className="progress-bar" style={{ height: 8 }}>
@@ -111,7 +114,7 @@ export default function POS() {
       {promoActive && (
         <div className="card" style={{ borderColor: 'var(--accent-orange)', background: 'rgba(255,176,103,0.08)' }}>
           <div className="flex items-center gap-sm mb-md">
-            <span>🔥</span>
+            <IconFlame size={18} />
             <strong style={{ color: '#E65100' }}>Modo Remate</strong>
           </div>
           <div className="flex gap-sm" style={{ flexWrap: 'wrap', marginBottom: 8 }}>
@@ -188,9 +191,9 @@ export default function POS() {
         )}
         <div className="flex items-center justify-between mb-md">
           <div className="flex items-center gap-sm">
-            <span style={{ fontSize: '1.3rem' }}>🛒</span>
+            <IconCart size={21} />
             <strong>Carrito</strong>
-            {promoActive && <span className="badge badge--orange">🔥 Remate</span>}
+            {promoActive && <span className="badge badge--orange"><IconFlame size={12} /> Remate</span>}
           </div>
           {!isEmpty && (
             <button className="text-danger text-sm font-bold" style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={clearCart}>Vaciar</button>
@@ -213,7 +216,7 @@ export default function POS() {
       {!isEmpty && (
         <div className="card card--accent">
           <div className="flex items-center gap-sm mb-md">
-            <span>🏷️</span>
+            <IconTag size={17} />
             <strong>Desglose de Precio</strong>
           </div>
           {totals.pairs > 0 && (
@@ -232,7 +235,7 @@ export default function POS() {
             <>
               <hr style={{ margin: '8px 0', borderColor: '#D7CCC8' }} />
               <div className="flex justify-between text-sm">
-                <span>✨ Ahorro vs precio normal</span>
+                <span className="flex items-center gap-sm"><IconSparkle size={14} /> Ahorro vs precio normal</span>
                 <strong className="text-success">-{formatMoney(totals.discount)}</strong>
               </div>
             </>
@@ -250,7 +253,7 @@ export default function POS() {
         <div className="card card--subtle">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-sm">
-              <span>💵</span>
+              <IconCoins size={17} />
               <strong className="text-sm">Calcular cambio</strong>
             </div>
             <button onClick={() => { setShowChangeCalc(!showChangeCalc); setPaidWith('') }} className="text-sm font-bold" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)' }}>
@@ -283,7 +286,7 @@ export default function POS() {
       {/* Complete Button */}
       {!isEmpty && (
         <button className="btn btn--primary btn--block" style={{ padding: '14px', fontSize: '1.1rem' }} onClick={handleComplete} disabled={!canComplete}>
-          ✅ Cobrar {formatMoney(totals.totalPrice)}
+          <IconCheck size={17} /> Cobrar {formatMoney(totals.totalPrice)}
         </button>
       )}
 

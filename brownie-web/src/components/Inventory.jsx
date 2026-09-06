@@ -2,6 +2,8 @@ import { useState } from 'react'
 import useBrownieStore, { MATERIAL_CATEGORIES, FLAVOR_ICONS, FLAVOR_COLORS, TRAY_PRESETS } from '../store/useStore'
 import { playRestockSound, playExpenseSound, playDeleteSound } from '../services/sounds'
 import { BoxDoodle, WavyUnderline, SparkleCluster } from './Doodles'
+import Costs from './Costs'
+import { IconBasket, IconBox, IconChefHat, IconReceipt, IconPlus, IconRefresh, IconPencil, IconTrash, IconAlert } from './Icons'
 
 function formatMoney(n) {
   return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(n)
@@ -23,6 +25,8 @@ export default function Inventory() {
   const loadBasket = useBrownieStore(s => s.loadBasket)
   const resetBasket = useBrownieStore(s => s.resetBasket)
   const getBasketStats = useBrownieStore(s => s.getBasketStats)
+  const getCostMap = useBrownieStore(s => s.getCostMap)
+  const costMap = getCostMap()
 
   const [tab, setTab] = useState('stock')
   const [showRestock, setShowRestock] = useState(false)
@@ -190,28 +194,37 @@ export default function Inventory() {
         <button
           className={`btn btn--sm ${tab === 'stock' ? 'btn--primary' : 'btn--ghost'}`}
           onClick={() => setTab('stock')}
-          style={{ flex: 1 }}
+          style={{ flex: 1, padding: '6px 8px' }}
         >
-          📦 Stock
+          <IconBox size={16} /> Stock
+        </button>
+        <button
+          className={`btn btn--sm ${tab === 'costs' ? 'btn--primary' : 'btn--ghost'}`}
+          onClick={() => setTab('costs')}
+          style={{ flex: 1, padding: '6px 8px' }}
+        >
+          <IconChefHat size={16} /> Costos
         </button>
         <button
           className={`btn btn--sm ${tab === 'expenses' ? 'btn--primary' : 'btn--ghost'}`}
           onClick={() => setTab('expenses')}
-          style={{ flex: 1 }}
+          style={{ flex: 1, padding: '6px 8px' }}
         >
-          🧾 Materia Prima
+          <IconReceipt size={16} /> Gastos
         </button>
       </div>
 
-      {tab === 'stock' ? (
+      {tab === 'costs' ? (
+        <Costs />
+      ) : tab === 'stock' ? (
         <>
           {/* Basket progress */}
           <div className="card card--accent">
             <div className="flex items-center justify-between mb-md">
               <div className="flex items-center gap-sm">
-                <span style={{ fontSize: '1.4rem' }}>🧺</span>
+                <span style={{ color: 'var(--primary)', display: 'flex' }}><IconBasket size={24} /></span>
                 <div>
-                  <strong>Canasta de Hoy</strong>
+                  <strong className="font-display" style={{ fontSize: '1.05rem' }}>Canasta de Hoy</strong>
                   <p className="text-xs text-secondary">
                     {basket.trays} charolas × {basket.perTray} = {stats.target} brownies
                   </p>
@@ -239,7 +252,7 @@ export default function Inventory() {
                     Vendidos <strong>{stats.sold}</strong> de <strong>{stats.loaded}</strong>
                   </span>
                   <span className="text-sm" style={{ fontWeight: 800, color: stats.remaining === 0 ? 'var(--success)' : 'var(--secondary)' }}>
-                    {stats.remaining === 0 ? '🎉 ¡Todo vendido!' : `Faltan ${stats.remaining}`}
+                    {stats.remaining === 0 ? '¡Todo vendido!' : `Faltan ${stats.remaining}`}
                   </span>
                 </div>
               </>
@@ -251,13 +264,13 @@ export default function Inventory() {
 
             <div className="flex gap-sm" style={{ marginTop: 12 }}>
               <button className="btn btn--accent btn--sm btn--block" onClick={openLoadBasket}>
-                🧺 Cargar canasta
+                <IconBasket size={16} /> Cargar canasta
               </button>
               <button
                 className="btn btn--ghost btn--sm btn--block"
                 onClick={() => { setShowRestock(true); if (!rFlavor && flavors.length > 0) setRFlavor(flavors[0].id) }}
               >
-                ➕ Resurtir uno
+                <IconPlus size={16} /> Resurtir uno
               </button>
             </div>
             {stats.loaded > 0 && (
@@ -266,7 +279,7 @@ export default function Inventory() {
                 onClick={() => setConfirmResetBasket(true)}
                 style={{ marginTop: 8 }}
               >
-                ♻️ Terminar salida
+                <IconRefresh size={16} /> Terminar salida
               </button>
             )}
           </div>
@@ -283,7 +296,7 @@ export default function Inventory() {
                     <span style={{ fontSize: '2rem' }}>{f.icon}</span>
                     <div>
                       <strong>{f.name}</strong>
-                      <p className="text-xs text-secondary">Costo: $8/ud</p>
+                      <p className="text-xs text-secondary">Costo: ${costMap[f.id]?.toFixed(2) ?? '8.00'}/ud</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-sm">
@@ -312,10 +325,10 @@ export default function Inventory() {
                         </div>
                         <button
                           onClick={() => handleEditStock(f.id)}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85rem', padding: '4px' }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: 'var(--text-secondary)', display: 'flex' }}
                           title="Corregir stock"
                         >
-                          ✏️
+                          <IconPencil size={17} />
                         </button>
                       </>
                     )}
@@ -329,7 +342,7 @@ export default function Inventory() {
           <div className="card card--subtle">
             <div className="flex items-center justify-between mb-md">
               <strong>Sabores</strong>
-              <button className="btn btn--primary btn--sm" onClick={() => setShowAddFlavor(true)}>➕ Nuevo sabor</button>
+              <button className="btn btn--primary btn--sm" onClick={() => setShowAddFlavor(true)}><IconPlus size={15} /> Nuevo sabor</button>
             </div>
             {flavors.map(f => (
               <div key={f.id} className="flex items-center justify-between" style={{ padding: '6px 0', borderBottom: '1px solid #EFEBE9' }}>
@@ -339,8 +352,8 @@ export default function Inventory() {
                   <span style={{ width: 14, height: 14, borderRadius: '50%', background: f.color, display: 'inline-block', border: '1.5px solid #0002' }} />
                 </div>
                 <div className="flex items-center gap-sm">
-                  <button onClick={() => openEditFlavor(f)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }} title="Editar sabor">✏️</button>
-                  <button onClick={() => setConfirmDeleteFlavor(f.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }} title="Eliminar sabor">🗑️</button>
+                  <button onClick={() => openEditFlavor(f)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex' }} title="Editar sabor"><IconPencil size={16} /></button>
+                  <button onClick={() => setConfirmDeleteFlavor(f.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex' }} title="Eliminar sabor"><IconTrash size={16} /></button>
                 </div>
               </div>
             ))}
@@ -350,7 +363,7 @@ export default function Inventory() {
           {showAddFlavor && (
             <div className="overlay" onClick={() => setShowAddFlavor(false)}>
               <div className="modal animate-scale" onClick={e => e.stopPropagation()}>
-                <h3 style={{ marginBottom: 16, fontWeight: 800 }}>🍫 Nuevo Sabor</h3>
+                <h3 style={{ marginBottom: 16, fontWeight: 800 }}>Nuevo Sabor</h3>
                 <div className="flex-col gap-md">
                   <div>
                     <label>Nombre</label>
@@ -406,7 +419,7 @@ export default function Inventory() {
           {showEditFlavor && (
             <div className="overlay" onClick={() => { setShowEditFlavor(null); setFName(''); setFIcon('🍫'); setFColor('#5D4037') }}>
               <div className="modal animate-scale" onClick={e => e.stopPropagation()}>
-                <h3 style={{ marginBottom: 16, fontWeight: 800 }}>✏️ Editar Sabor</h3>
+                <h3 style={{ marginBottom: 16, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8 }}><IconPencil size={20} /> Editar Sabor</h3>
                 <div className="flex-col gap-md">
                   <div>
                     <label>Nombre</label>
@@ -462,7 +475,7 @@ export default function Inventory() {
           {confirmDeleteFlavor && (
             <div className="overlay" onClick={() => setConfirmDeleteFlavor(null)}>
               <div className="modal text-center animate-scale" onClick={e => e.stopPropagation()}>
-                <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>⚠️</div>
+                <div style={{ color: 'var(--danger)', display: 'flex', justifyContent: 'center', marginBottom: 12 }}><IconAlert size={42} /></div>
                 <h3 style={{ fontWeight: 800, marginBottom: 8 }}>¿Eliminar este sabor?</h3>
                 <p className="text-sm text-secondary" style={{ marginBottom: 16 }}>
                   Se eliminará el sabor, su stock y cualquier referencia en el carrito. Las ventas pasadas no se afectan.
@@ -479,7 +492,7 @@ export default function Inventory() {
           {showLoadBasket && (
             <div className="overlay" onClick={() => setShowLoadBasket(false)}>
               <div className="modal animate-scale" onClick={e => e.stopPropagation()}>
-                <h3 style={{ marginBottom: 4, fontWeight: 800 }}>🧺 Cargar Canasta</h3>
+                <h3 style={{ marginBottom: 4, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8 }}><IconBasket size={22} /> Cargar Canasta</h3>
                 <p className="text-xs text-secondary" style={{ marginBottom: 16 }}>
                   Una charola = un sabor. Ya viene prellenado con {basket.perTray} de cada uno.
                 </p>
@@ -623,7 +636,7 @@ export default function Inventory() {
           {confirmResetBasket && (
             <div className="overlay" onClick={() => setConfirmResetBasket(false)}>
               <div className="modal text-center animate-scale" onClick={e => e.stopPropagation()}>
-                <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>🧺</div>
+                <div style={{ color: 'var(--primary)', display: 'flex', justifyContent: 'center', marginBottom: 12 }}><IconBasket size={42} /></div>
                 <h3 style={{ fontWeight: 800, marginBottom: 8 }}>¿Terminar la salida?</h3>
                 <p className="text-sm text-secondary" style={{ marginBottom: 16 }}>
                   Se reinicia el contador de la canasta. El stock que sobró y tus ventas no se tocan.
@@ -640,7 +653,7 @@ export default function Inventory() {
           {showRestock && (
             <div className="overlay" onClick={() => setShowRestock(false)}>
               <div className="modal animate-scale" onClick={e => e.stopPropagation()}>
-                <h3 style={{ marginBottom: 16, fontWeight: 800 }}>📦 Resurtir Stock</h3>
+                <h3 style={{ marginBottom: 16, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8 }}><IconBox size={20} /> Resurtir Stock</h3>
                 <div className="flex-col gap-md">
                   <div>
                     <label>Sabor</label>
@@ -685,7 +698,7 @@ export default function Inventory() {
               <strong className="text-xl">{formatMoney(monthTotal)}</strong>
             </div>
             <button className="btn btn--orange btn--sm" onClick={() => setShowAddExpense(true)}>
-              ➕ Agregar
+              <IconPlus size={16} /> Agregar
             </button>
           </div>
 
@@ -723,10 +736,10 @@ export default function Inventory() {
                   <strong className="text-danger">{formatMoney(e.amount)}</strong>
                   <button
                     onClick={() => handleDeleteExpense(e.id)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem' }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex' }}
                     title="Eliminar"
                   >
-                    🗑️
+                    <IconTrash size={17} />
                   </button>
                 </div>
               </div>
@@ -737,7 +750,7 @@ export default function Inventory() {
           {showAddExpense && (
             <div className="overlay" onClick={() => setShowAddExpense(false)}>
               <div className="modal animate-scale" onClick={e => e.stopPropagation()}>
-                <h3 style={{ marginBottom: 16, fontWeight: 800 }}>🧾 Gasto de Materia Prima</h3>
+                <h3 style={{ marginBottom: 16, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8 }}><IconReceipt size={20} /> Gasto de Materia Prima</h3>
                 <div className="flex-col gap-md">
                   <div>
                     <label>Categoría</label>

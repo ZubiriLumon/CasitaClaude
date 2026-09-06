@@ -2,6 +2,7 @@ import { useState } from 'react'
 import useBrownieStore from '../store/useStore'
 import { playOrderSound, playSuccessSound, playDeleteSound } from '../services/sounds'
 import { ClipboardDoodle, WavyUnderline } from './Doodles'
+import { IconPlus, IconCheck, IconCoins, IconClipboard, IconTrash } from './Icons'
 
 function formatMoney(n) {
   return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(n)
@@ -58,7 +59,7 @@ export default function Orders() {
           <div className="doodle-float-delay">
             <ClipboardDoodle size={45} />
           </div>
-          <button className="btn btn--primary btn--sm" onClick={() => setShowAdd(true)}>➕ Nuevo</button>
+          <button className="btn btn--primary btn--sm" onClick={() => setShowAdd(true)}><IconPlus size={15} /> Nuevo</button>
         </div>
       </div>
 
@@ -87,7 +88,7 @@ export default function Orders() {
         <strong className="mb-md" style={{ display: 'block' }}>Pedidos Pendientes</strong>
         {pending.length === 0 ? (
           <div className="card card--subtle text-center text-secondary">
-            <p>✅ No hay pedidos pendientes</p>
+            <p className="flex items-center justify-center gap-sm"><IconCheck size={18} /> No hay pedidos pendientes</p>
           </div>
         ) : (
           <div className="flex-col gap-sm">
@@ -97,7 +98,7 @@ export default function Orders() {
                 className={`card ${isOverdue(order) ? 'card--danger' : 'card--sm'}`}
               >
                 <div className="flex items-center justify-between mb-md">
-                  <strong>👤 {order.customerName}</strong>
+                  <strong>{order.customerName}</strong>
                   <span className={`badge ${order.isPaid ? 'badge--success' : 'badge--orange'}`}>
                     {order.isPaid ? '✓ Pagado' : 'Pendiente'}
                   </span>
@@ -105,7 +106,7 @@ export default function Orders() {
                 <p>{order.orderDescription}</p>
                 <div className="flex items-center justify-between mt-sm">
                   <span className="text-xs" style={{ color: isOverdue(order) ? 'var(--danger)' : 'var(--text-secondary)' }}>
-                    📅 {new Date(order.deliveryDate).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    {new Date(order.deliveryDate).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}
                     {isOverdue(order) && ' ¡ATRASADO!'}
                   </span>
                   {order.totalAmount > 0 && <strong className="text-primary">{formatMoney(order.totalAmount)}</strong>}
@@ -118,13 +119,13 @@ export default function Orders() {
                     className="btn btn--ghost btn--sm"
                     onClick={() => toggleOrderPaid(order.id)}
                   >
-                    {order.isPaid ? '↩ Desmarcar pago' : '💵 Marcar pagado'}
+                    {order.isPaid ? '↩ Desmarcar pago' : 'Marcar pagado'}
                   </button>
                   <button
                     className="btn btn--success btn--sm"
                     onClick={() => { markOrderDelivered(order.id); playSuccessSound() }}
                   >
-                    ✅ Entregado
+                    <IconCheck size={15} /> Entregado
                   </button>
                 </div>
               </div>
@@ -154,7 +155,7 @@ export default function Orders() {
                     onClick={() => { deleteOrder(order.id); playDeleteSound() }}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9rem' }}
                   >
-                    🗑️
+                    <IconTrash size={16} />
                   </button>
                 </div>
               </div>
@@ -167,7 +168,7 @@ export default function Orders() {
       {showAdd && (
         <div className="overlay" onClick={() => setShowAdd(false)}>
           <div className="modal animate-scale" onClick={e => e.stopPropagation()}>
-            <h3 style={{ marginBottom: 16, fontWeight: 800 }}>📋 Nuevo Pedido</h3>
+            <h3 style={{ marginBottom: 16, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8 }}><IconClipboard size={20} /> Nuevo Pedido</h3>
             <div className="flex-col gap-md">
               <div>
                 <label>Nombre del cliente</label>

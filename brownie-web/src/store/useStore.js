@@ -38,7 +38,8 @@ export const MATERIAL_CATEGORIES = [
 ]
 
 // Pricing constants
-const COST_PER_UNIT = 8.0
+export const DEFAULT_COST_PER_UNIT = 8.0
+const COST_PER_UNIT = DEFAULT_COST_PER_UNIT
 const PRICE_SINGLE = 30.0
 const PRICE_PAIR = 55.0
 
@@ -174,6 +175,58 @@ const useBrownieStore = create(
         return { ...basket, target, remaining, loaded, sold, pct }
       },
 
+      // ── Production costs (Perla logs what each brownie actually cost) ──
+      // Each entry is a snapshot for one flavor at one point in time.
+      // The newest entry per flavor is the cost we use going forward.
+      costEntries: [],
+
+      addCostEntry: ({ flavorId, costPerUnit, batchSize, batchTotal, note }) => set(state => ({
+        costEntries: [
+          {
+            id: Date.now().toString(),
+            date: new Date().toISOString(),
+            flavorId,
+            costPerUnit,
+            batchSize: batchSize || null,
+            batchTotal: batchTotal || null,
+            note: note || '',
+          },
+          ...state.costEntries,
+        ],
+      })),
+
+      deleteCostEntry: (id) => set(state => ({
+        costEntries: state.costEntries.filter(c => c.id !== id),
+      })),
+
+      // Latest logged cost for one flavor, falling back to the global default.
+      getCostPerUnit: (flavorId) => {
+        const { costEntries } = get()
+        const latest = costEntries.find(c => c.flavorId === flavorId)
+        return latest ? latest.costPerUnit : DEFAULT_COST_PER_UNIT
+      },
+
+      // { flavorId: costPerUnit } for every flavor, defaults included.
+      getCostMap: () => {
+        const { flavors, costEntries } = get()
+        const map = {}
+        for (const f of flavors) {
+          const latest = costEntries.find(c => c.flavorId === f.id)
+          map[f.id] = latest ? latest.costPerUnit : DEFAULT_COST_PER_UNIT
+        }
+        return map
+      },
+
+      // Most recent cost entry per flavor, for showing "last updated".
+      getLatestCostEntries: () => {
+        const { flavors, costEntries } = get()
+        return flavors.map(f => ({
+          flavor: f,
+          entry: costEntries.find(c => c.flavorId === f.id) || null,
+          costPerUnit: costEntries.find(c => c.flavorId === f.id)?.costPerUnit ?? DEFAULT_COST_PER_UNIT,
+        }))
+      },
+
       // ── Cart (POS) ──
       cart: {},
 
@@ -200,13 +253,18 @@ const useBrownieStore = create(
 
       getCartTotal: (pairPrice = PRICE_PAIR, singlePrice = PRICE_SINGLE) => {
         const { cart } = get()
+        const costMap = get().getCostMap()
         const totalUnits = Object.values(cart).reduce((sum, q) => sum + q, 0)
         const price = calculateTotal(totalUnits, pairPrice, singlePrice)
+        const totalCost = Object.entries(cart).reduce(
+          (sum, [flavorId, qty]) => sum + qty * (costMap[flavorId] ?? DEFAULT_COST_PER_UNIT),
+          0
+        )
         return {
           totalUnits,
           totalPrice: price,
-          totalCost: calculateCost(totalUnits),
-          profit: price - calculateCost(totalUnits),
+          totalCost,
+          profit: price - totalCost,
           pairs: Math.floor(totalUnits / 2),
           singles: totalUnits % 2,
           discount: (totalUnits * PRICE_SINGLE) - price,
@@ -223,16 +281,23 @@ const useBrownieStore = create(
         const totalUnits = Object.values(cart).reduce((sum, q) => sum + q, 0)
         if (totalUnits === 0) return state
 
+        // Snapshot the unit cost onto each item so past reports stay accurate
+        // even after Perla logs a new cost for that flavor.
+        const costMap = get().getCostMap()
         const items = Object.entries(cart)
           .filter(([, qty]) => qty > 0)
-          .map(([flavorId, quantity]) => ({ flavorId, quantity }))
+          .map(([flavorId, quantity]) => ({
+            flavorId,
+            quantity,
+            unitCost: costMap[flavorId] ?? DEFAULT_COST_PER_UNIT,
+          }))
 
         const sale = {
           id: Date.now().toString(),
           date: new Date().toISOString(),
           items,
           totalAmount: calculateTotal(totalUnits, pairPrice, singlePrice),
-          totalCost: calculateCost(totalUnits),
+          totalCost: items.reduce((s, i) => s + i.quantity * i.unitCost, 0),
           totalBrownies: totalUnits,
         }
 

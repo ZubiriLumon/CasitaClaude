@@ -16,6 +16,11 @@
   --shadow-offset: 4px;
   --radius: 18px;
   --radius-sm: 12px;
+
+  /* Fraunces carries the personality (soft, slightly wonky serif — reads
+     handmade rather than generated); Nunito stays for everything you read. */
+  --font-display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  --font-body: 'Nunito', system-ui, -apple-system, sans-serif;
 }
 
 * {
@@ -25,7 +30,7 @@
 }
 
 body {
-  font-family: 'Nunito', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-body);
   background: var(--bg);
   background-image:
     radial-gradient(circle at 20% 50%, rgba(126,207,179,0.06) 0%, transparent 50%),
@@ -33,6 +38,32 @@ body {
     radial-gradient(circle at 50% 80%, rgba(93,58,26,0.03) 0%, transparent 50%);
   color: var(--text);
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Paper grain. Flat color fills are what make an interface look printed by a
+   machine; a little tooth over everything makes it feel like stock. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.5;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.14'/%3E%3C/svg%3E");
+}
+
+/* Headings and figures carry the display face. */
+h1, h2, h3, .font-display {
+  font-family: var(--font-display);
+  font-variation-settings: 'SOFT' 50, 'WONK' 1;
+  letter-spacing: -0.015em;
+}
+
+/* Money and counts line up column to column instead of jittering. */
+.text-xl, .text-2xl, .tabular {
+  font-variant-numeric: tabular-nums;
 }
 
 /* ── Neubrutal Card ── */
@@ -57,9 +88,51 @@ body {
 .card--subtle { border-color: #D7CCC8; box-shadow: 2px 2px 0 rgba(0,0,0,0.05); }
 .card--sm { box-shadow: 2px 2px 0 rgba(93, 58, 26, 0.15); }
 
+/* Three depths, not one. Uniform elevation everywhere is what flattens a
+   neubrutalist layout — the headline number should sit above its supporting
+   rows, and quiet lists should sit below them. */
+.card--hero {
+  box-shadow: 7px 7px 0 rgba(93, 58, 26, 0.22);
+  padding: 22px 18px;
+}
+.card--hero:hover {
+  box-shadow: 8px 8px 0 rgba(93, 58, 26, 0.26);
+}
+
+/* Icon + label pairing used across stat rows and card headers. */
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 12px;
+  color: var(--primary);
+}
+.card-head strong {
+  font-family: var(--font-display);
+  font-variation-settings: 'SOFT' 50, 'WONK' 1;
+  font-size: 1.05rem;
+  color: var(--text);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex: 1;
+}
+.stat__icon { color: var(--secondary); }
+.stat__value {
+  font-family: var(--font-display);
+  font-variation-settings: 'SOFT' 50, 'WONK' 1;
+  font-size: 1.2rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ── Neubrutal Button ── */
 .btn {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--font-body);
   font-weight: 800;
   font-size: 0.95rem;
   border: 2px solid rgba(0,0,0,0.15);
@@ -109,8 +182,11 @@ body {
 
 .page { padding: 16px; }
 .page-title {
-  font-size: 1.8rem;
+  font-family: var(--font-display);
+  font-variation-settings: 'SOFT' 50, 'WONK' 1;
+  font-size: 1.9rem;
   font-weight: 900;
+  letter-spacing: -0.025em;
   margin-bottom: 16px;
   color: var(--text);
 }
@@ -192,7 +268,7 @@ body {
 
 /* ── Form ── */
 .input {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--font-body);
   font-size: 0.95rem;
   font-weight: 600;
   padding: 10px 14px;
