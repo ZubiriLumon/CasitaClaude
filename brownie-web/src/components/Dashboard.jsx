@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import useBrownieStore from '../store/useStore'
 import { playDeleteSound } from '../services/sounds'
-import { BrownieDoodle, CrownDoodle, SparkleCluster, WavyUnderline, SleepyFace } from './Doodles'
-import { IconBasket, IconAlert, IconCoins, IconTrendUp, IconCart, IconTrash } from './Icons'
+import { BrownieDoodle, CrownDoodle, SparkleCluster, WavyUnderline, SleepyFace, MoneyDoodle } from './Doodles'
 
 function formatMoney(n) {
   return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(n)
@@ -14,13 +13,11 @@ export default function Dashboard() {
   const getLowStockFlavors = useBrownieStore(s => s.getLowStockFlavors)
   const deleteSale = useBrownieStore(s => s.deleteSale)
   const flavors = useBrownieStore(s => s.flavors)
-  const getBasketStats = useBrownieStore(s => s.getBasketStats)
 
   const [confirmDelete, setConfirmDelete] = useState(null)
 
   const todaySales = getTodaySales()
   const lowStock = getLowStockFlavors()
-  const basket = getBasketStats()
 
   const todayRevenue = todaySales.reduce((s, sale) => s + sale.totalAmount, 0)
   const todayProfit = todaySales.reduce((s, sale) => s + (sale.totalAmount - sale.totalCost), 0)
@@ -43,7 +40,7 @@ export default function Dashboard() {
               <CrownDoodle size={36} />
             </div>
           </div>
-          <WavyUnderline width={180} color="#FFB067" />
+          <WavyUnderline width={180} color="#6FB1DC" />
           <p className="text-secondary text-sm" style={{ marginTop: 4 }}>
             {new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
@@ -53,41 +50,12 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Basket progress */}
-      {basket.loaded > 0 && (
-        <div className="card card--accent">
-          <div className="flex items-center justify-between mb-md">
-            <div className="card-head" style={{ marginBottom: 0 }}>
-              <IconBasket size={20} />
-              <strong>Canasta de Hoy</strong>
-            </div>
-            <span className="text-sm text-secondary">{basket.trays} × {basket.perTray}</span>
-          </div>
-          <div className="progress-bar">
-            <div
-              className="progress-fill"
-              style={{
-                width: `${basket.pct}%`,
-                background: basket.pct >= 100 ? 'var(--success)' : 'var(--accent)',
-              }}
-            />
-          </div>
-          <div className="flex justify-between" style={{ marginTop: 8 }}>
-            <span className="text-sm">
-              Vendidos <strong>{basket.sold}</strong> de <strong>{basket.loaded}</strong>
-            </span>
-            <span className="text-sm" style={{ fontWeight: 800, color: basket.remaining === 0 ? 'var(--success)' : 'var(--secondary)' }}>
-              {basket.remaining === 0 ? '🎉 ¡Todo vendido!' : `Faltan ${basket.remaining}`}
-            </span>
-          </div>
-        </div>
-      )}
 
       {/* Stock Alerts */}
       {lowStock.length > 0 && (
         <div className="card card--danger animate-in">
-          <div className="card-head" style={{ color: 'var(--danger)' }}>
-            <IconAlert size={19} />
+          <div className="flex items-center gap-sm mb-md">
+            <span style={{ fontSize: '1.2rem' }}>⚠️</span>
             <strong style={{ color: 'var(--danger)' }}>Alertas de Stock</strong>
           </div>
           {lowStock.map(f => (
@@ -104,23 +72,23 @@ export default function Dashboard() {
         <div className="doodle-corner doodle-corner--tr doodle-sparkle">
           <SparkleCluster size={35} />
         </div>
-        <div className="card-head">
-          <IconCoins size={20} />
+        <div className="flex items-center gap-sm mb-md">
+          <MoneyDoodle size={28} />
           <strong>Resumen del Día</strong>
         </div>
         <div className="flex justify-between text-center">
           <div className="stat">
-            <span className="stat__icon"><IconCoins size={22} /></span>
+            <span style={{ fontSize: '1.4rem' }}>💰</span>
             <strong className="stat__value">{formatMoney(todayRevenue)}</strong>
             <span className="text-xs text-secondary">Ventas</span>
           </div>
           <div className="stat">
-            <span className="stat__icon"><IconTrendUp size={22} /></span>
+            <span style={{ fontSize: '1.4rem' }}>📈</span>
             <strong className="stat__value text-success">{formatMoney(todayProfit)}</strong>
             <span className="text-xs text-secondary">Ganancia</span>
           </div>
           <div className="stat">
-            <span className="stat__icon"><IconCart size={22} /></span>
+            <span style={{ fontSize: '1.4rem' }}>🛍️</span>
             <strong className="stat__value">{todaySold}</strong>
             <span className="text-xs text-secondary">Vendidos</span>
           </div>
@@ -183,10 +151,10 @@ export default function Dashboard() {
                     <strong className="text-primary text-lg">{formatMoney(sale.totalAmount)}</strong>
                     <button
                       onClick={() => setConfirmDelete(sale.id)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: 'var(--text-secondary)', display: 'flex' }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85rem', padding: '4px' }}
                       title="Cancelar venta"
                     >
-                      <IconTrash size={17} />
+                      🗑️
                     </button>
                   </div>
                 </div>
@@ -200,9 +168,7 @@ export default function Dashboard() {
       {confirmDelete && (
         <div className="overlay" onClick={() => setConfirmDelete(null)}>
           <div className="modal text-center animate-scale" onClick={e => e.stopPropagation()}>
-            <div style={{ color: 'var(--danger)', display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
-              <IconAlert size={42} />
-            </div>
+            <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>⚠️</div>
             <h3 style={{ fontWeight: 800, marginBottom: 8 }}>¿Cancelar esta venta?</h3>
             <p className="text-sm text-secondary" style={{ marginBottom: 16 }}>
               Se eliminará la venta y el stock se restaurará automáticamente.

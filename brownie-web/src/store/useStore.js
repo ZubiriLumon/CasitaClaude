@@ -1,11 +1,14 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-// Default flavors (used only on first launch)
+// Default flavors (used only on first launch).
+// fixedPrice set = that flavor is sold at its own price and never enters the
+// 2×$50 deal; null/undefined = it goes into the deal like everything else.
 export const DEFAULT_FLAVORS = [
-  { id: 'tripleChocolate', name: 'Triple Chocolate', icon: '🍫', color: '#3E2723' },
-  { id: 'chokis', name: 'Chokis', icon: '🍪', color: '#A1887F' },
-  { id: 'oreo', name: 'Oreo', icon: '🖤', color: '#37474F' },
+  { id: 'tripleChocolate', name: 'Triple Chocolate', icon: '🍫', color: '#3E2723', fixedPrice: null },
+  { id: 'chokis', name: 'Chokis', icon: '🍪', color: '#A1887F', fixedPrice: null },
+  { id: 'oreo', name: 'Oreo', icon: '🖤', color: '#37474F', fixedPrice: null },
+  { id: 'cheesecake', name: 'Cheesecake', icon: '🧁', color: '#E8871E', fixedPrice: 30 },
 ]
 
 // Emoji options for flavor picker
@@ -31,30 +34,70 @@ export const DEFAULT_PER_TRAY = 12
 // Quick-add chips for restocking (multiples of a tray)
 export const TRAY_PRESETS = [6, 12, 24, 36, 48]
 
-// Raw material categories
-export const MATERIAL_CATEGORIES = [
-  'Harina', 'Leche', 'Huevo', 'Chocolate', 'Mantequilla',
-  'Azúcar', 'Bolsas', 'Stickers', 'Listones', 'Galletas (Oreo/Chokis)', 'Otro'
+// Extraordinary expenses: things NOT already inside the per-brownie cost that
+// Perla logs. Ingredients live in that cost, so listing them here too would
+// subtract them twice.
+export const EXTRA_EXPENSE_CATEGORIES = [
+  'Bolsas', 'Stickers', 'Listones', 'Empaque', 'Transporte',
+  'Gas', 'Equipo/Utensilios', 'Publicidad', 'Otro'
 ]
 
 // Pricing constants
 export const DEFAULT_COST_PER_UNIT = 8.0
 const COST_PER_UNIT = DEFAULT_COST_PER_UNIT
-const PRICE_SINGLE = 30.0
-const PRICE_PAIR = 55.0
+export const PRICE_SINGLE = 30.0
+export const PRICE_PAIR = 50.0
 
-// Preset promo prices for quick selection
-export const PROMO_PRESETS = [
-  { label: '2×$55', pairPrice: 55, singlePrice: 30 },
-  { label: '2×$50', pairPrice: 50, singlePrice: 25 },
-  { label: '2×$45', pairPrice: 45, singlePrice: 25 },
-  { label: '2×$40', pairPrice: 40, singlePrice: 20 },
-]
-
+// Pure 2-for-one-price formula, for units that take part in the deal.
 export function calculateTotal(totalUnits, pairPrice = PRICE_PAIR, singlePrice = PRICE_SINGLE) {
   const pairs = Math.floor(totalUnits / 2)
   const remainder = totalUnits % 2
   return pairs * pairPrice + remainder * singlePrice
+}
+
+/**
+ * Prices a cart that mixes deal flavors with fixed-price ones.
+ *
+ * Fixed-price flavors (Cheesecake) are charged per unit and are kept out of
+ * the pair count entirely — otherwise one of them would pair up with a deal
+ * brownie and quietly discount both.
+ */
+export function calculateCartPricing(cart, flavors, pairPrice = PRICE_PAIR, singlePrice = PRICE_SINGLE) {
+  const byId = Object.fromEntries(flavors.map(f => [f.id, f]))
+  let dealUnits = 0
+  let fixedUnits = 0
+  let fixedTotal = 0
+  const fixedLines = []
+
+  for (const [flavorId, qty] of Object.entries(cart)) {
+    if (!qty || qty <= 0) continue
+    const flavor = byId[flavorId]
+    const fixed = flavor?.fixedPrice
+    if (fixed != null && fixed > 0) {
+      fixedUnits += qty
+      fixedTotal += qty * fixed
+      fixedLines.push({ flavorId, name: flavor.name, icon: flavor.icon, qty, unitPrice: fixed, total: qty * fixed })
+    } else {
+      dealUnits += qty
+    }
+  }
+
+  const pairs = Math.floor(dealUnits / 2)
+  const singles = dealUnits % 2
+  const dealTotal = pairs * pairPrice + singles * singlePrice
+
+  return {
+    totalUnits: dealUnits + fixedUnits,
+    dealUnits,
+    fixedUnits,
+    pairs,
+    singles,
+    dealTotal,
+    fixedTotal,
+    fixedLines,
+    totalPrice: dealTotal + fixedTotal,
+    discount: dealUnits * singlePrice - dealTotal,
+  }
 }
 
 export function calculateCost(totalUnits) {
@@ -105,11 +148,6 @@ const useBrownieStore = create(
           ...state.inventory,
           [flavorId]: (state.inventory[flavorId] || 0) + quantity,
         },
-        basket: {
-          ...state.basket,
-          loaded: state.basket.loaded + quantity,
-          startedAt: state.basket.startedAt || new Date().toISOString(),
-        },
       })),
 
       setStock: (flavorId, quantity) => set(state => ({
@@ -119,12 +157,10 @@ const useBrownieStore = create(
         }
       })),
 
-      // ── Basket (la canasta de la salida) ──
+      // ── Basket config (drives the quick "cargar canasta" loadout) ──
       basket: {
         trays: DEFAULT_TRAYS,
         perTray: DEFAULT_PER_TRAY,
-        loaded: 0,
-        startedAt: null,
       },
 
       setBasketConfig: ({ trays, perTray }) => set(state => ({
@@ -151,29 +187,8 @@ const useBrownieStore = create(
           }
         }
 
-        return {
-          inventory: newInventory,
-          basket: {
-            ...state.basket,
-            loaded: mode === 'replace' ? added : state.basket.loaded + added,
-            startedAt: mode === 'replace' ? new Date().toISOString() : (state.basket.startedAt || new Date().toISOString()),
-          },
-        }
+        return { inventory: newInventory }
       }),
-
-      resetBasket: () => set(state => ({
-        basket: { ...state.basket, loaded: 0, startedAt: null },
-      })),
-
-      getBasketStats: () => {
-        const { basket, inventory } = get()
-        const target = basket.trays * basket.perTray
-        const remaining = Object.values(inventory).reduce((s, v) => s + v, 0)
-        const loaded = basket.loaded
-        const sold = Math.max(0, loaded - remaining)
-        const pct = loaded > 0 ? Math.min(100, Math.round((sold / loaded) * 100)) : 0
-        return { ...basket, target, remaining, loaded, sold, pct }
-      },
 
       // ── Production costs (Perla logs what each brownie actually cost) ──
       // Each entry is a snapshot for one flavor at one point in time.
@@ -251,54 +266,58 @@ const useBrownieStore = create(
 
       clearCart: () => set({ cart: {} }),
 
-      getCartTotal: (pairPrice = PRICE_PAIR, singlePrice = PRICE_SINGLE) => {
-        const { cart } = get()
+      getCartTotal: () => {
+        const { cart, flavors } = get()
         const costMap = get().getCostMap()
-        const totalUnits = Object.values(cart).reduce((sum, q) => sum + q, 0)
-        const price = calculateTotal(totalUnits, pairPrice, singlePrice)
+        const pricing = calculateCartPricing(cart, flavors)
         const totalCost = Object.entries(cart).reduce(
           (sum, [flavorId, qty]) => sum + qty * (costMap[flavorId] ?? DEFAULT_COST_PER_UNIT),
           0
         )
         return {
-          totalUnits,
-          totalPrice: price,
+          ...pricing,
           totalCost,
-          profit: price - totalCost,
-          pairs: Math.floor(totalUnits / 2),
-          singles: totalUnits % 2,
-          discount: (totalUnits * PRICE_SINGLE) - price,
-          pairPrice,
-          singlePrice,
+          profit: pricing.totalPrice - totalCost,
+          pairPrice: PRICE_PAIR,
+          singlePrice: PRICE_SINGLE,
         }
       },
 
       // ── Sales ──
       sales: [],
 
-      completeSale: (pairPrice = PRICE_PAIR, singlePrice = PRICE_SINGLE) => set(state => {
-        const { cart, inventory } = state
-        const totalUnits = Object.values(cart).reduce((sum, q) => sum + q, 0)
-        if (totalUnits === 0) return state
+      completeSale: () => set(state => {
+        const { cart, inventory, flavors } = state
+        const pricing = calculateCartPricing(cart, flavors)
+        if (pricing.totalUnits === 0) return state
 
         // Snapshot the unit cost onto each item so past reports stay accurate
         // even after Perla logs a new cost for that flavor.
         const costMap = get().getCostMap()
+        const byId = Object.fromEntries(flavors.map(f => [f.id, f]))
         const items = Object.entries(cart)
           .filter(([, qty]) => qty > 0)
-          .map(([flavorId, quantity]) => ({
-            flavorId,
-            quantity,
-            unitCost: costMap[flavorId] ?? DEFAULT_COST_PER_UNIT,
-          }))
+          .map(([flavorId, quantity]) => {
+            const fixed = byId[flavorId]?.fixedPrice
+            return {
+              flavorId,
+              quantity,
+              unitCost: costMap[flavorId] ?? DEFAULT_COST_PER_UNIT,
+              // Fixed-price items earned exactly this per unit; deal items
+              // share the sale's dealTotal between them.
+              fixedUnitPrice: fixed != null && fixed > 0 ? fixed : null,
+            }
+          })
 
         const sale = {
           id: Date.now().toString(),
           date: new Date().toISOString(),
           items,
-          totalAmount: calculateTotal(totalUnits, pairPrice, singlePrice),
+          totalAmount: pricing.totalPrice,
           totalCost: items.reduce((s, i) => s + i.quantity * i.unitCost, 0),
-          totalBrownies: totalUnits,
+          totalBrownies: pricing.totalUnits,
+          dealTotal: pricing.dealTotal,
+          dealUnits: pricing.dealUnits,
         }
 
         const newInventory = { ...inventory }
@@ -392,6 +411,20 @@ const useBrownieStore = create(
     }),
     {
       name: 'brownie-master-storage',
+      version: 1,
+      // Phones already carrying data get the Cheesecake rule applied to the
+      // flavor they added by hand, instead of silently staying in the deal.
+      migrate: (persisted, version) => {
+        if (!persisted) return persisted
+        if (version < 1 && Array.isArray(persisted.flavors)) {
+          persisted.flavors = persisted.flavors.map(f =>
+            f.fixedPrice == null && /cheese\s*-?\s*cake/i.test(f.name || '')
+              ? { ...f, fixedPrice: 30 }
+              : f
+          )
+        }
+        return persisted
+      },
     }
   )
 )

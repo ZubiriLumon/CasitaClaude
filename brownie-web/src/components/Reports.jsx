@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import useBrownieStore from '../store/useStore'
 import { ChartDoodle, WavyUnderline, CrownDoodle, SparkleCluster } from './Doodles'
-import { IconCalculator, IconCoins, IconPieSlice, IconTrendUp, IconTrendDown } from './Icons'
 
 function formatMoney(n) {
   return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(n)
@@ -26,17 +25,21 @@ export default function Reports() {
 
   const totalRevenue = sales.reduce((s, sale) => s + sale.totalAmount, 0)
   const productionCost = sales.reduce((s, sale) => s + sale.totalCost, 0)
-  const rawMaterialExpenses = expenses.reduce((s, e) => s + e.amount, 0)
+  const extraExpenses = expenses.reduce((s, e) => s + e.amount, 0)
   const grossProfit = totalRevenue - productionCost
-  const netProfit = grossProfit - rawMaterialExpenses
+  const netProfit = grossProfit - extraExpenses
   const totalBrownies = sales.reduce((s, sale) => s + sale.totalBrownies, 0)
 
-  // Per-flavor profitability. Revenue is split across a sale's items in
-  // proportion to units, since the 2×$55 deal prices the whole cart at once.
+  // Per-flavor profitability. A fixed-price flavor earned exactly its own
+  // price, so it gets that; the deal portion of the sale is what gets split
+  // between the flavors that took part in it, by unit share.
   const flavorStats = {}
   sales.forEach(sale => {
     const saleUnits = sale.totalBrownies || sale.items.reduce((s, i) => s + i.quantity, 0)
     if (saleUnits === 0) return
+
+    const hasDealSplit = sale.dealTotal != null && sale.dealUnits > 0
+
     sale.items.forEach(item => {
       if (!flavorStats[item.flavorId]) {
         flavorStats[item.flavorId] = { units: 0, cost: 0, revenue: 0 }
@@ -44,10 +47,21 @@ export default function Reports() {
       // Sales made before per-flavor costs existed only carry a total, so
       // spread that evenly across their units.
       const unitCost = item.unitCost ?? (sale.totalCost / saleUnits)
+
+      let revenue
+      if (item.fixedUnitPrice != null) {
+        revenue = item.quantity * item.fixedUnitPrice
+      } else if (hasDealSplit) {
+        revenue = sale.dealTotal * (item.quantity / sale.dealUnits)
+      } else {
+        // Sale predates fixed pricing: fall back to an even split.
+        revenue = sale.totalAmount * (item.quantity / saleUnits)
+      }
+
       const st = flavorStats[item.flavorId]
       st.units += item.quantity
       st.cost += item.quantity * unitCost
-      st.revenue += sale.totalAmount * (item.quantity / saleUnits)
+      st.revenue += revenue
     })
   })
 
@@ -75,7 +89,7 @@ export default function Reports() {
       <div className="section-header">
         <div>
           <h1 className="page-title" style={{ marginBottom: 0 }}>Reportes</h1>
-          <WavyUnderline width={115} color="#7ECFB3" />
+          <WavyUnderline width={115} color="#FF8C42" />
         </div>
         <div className="doodle-float section-header__doodle">
           <ChartDoodle size={55} />
@@ -97,8 +111,8 @@ export default function Reports() {
               <CrownDoodle size={30} />
             </div>
           )}
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8, color: netProfit >= 0 ? 'var(--success)' : 'var(--danger)' }}>
-            {netProfit >= 0 ? <IconTrendUp size={42} strokeWidth={1.6} /> : <IconTrendDown size={42} strokeWidth={1.6} />}
+          <div style={{ fontSize: '2.5rem', marginBottom: 8 }}>
+            {netProfit >= 0 ? '📈' : '📉'}
           </div>
         </div>
         {netProfit > 0 && (
@@ -118,8 +132,8 @@ export default function Reports() {
 
       {/* Profit breakdown */}
       <div className="card">
-        <div className="card-head">
-          <IconCalculator size={20} />
+        <div className="flex items-center gap-sm mb-md">
+          <span>🧮</span>
           <strong>Desglose</strong>
         </div>
 
@@ -128,7 +142,7 @@ export default function Reports() {
 
         <div
           className="flex justify-between"
-          style={{ padding: '10px 0', borderTop: '2px solid #EFEBE9', borderBottom: '2px solid #EFEBE9', margin: '6px 0' }}
+          style={{ padding: '10px 0', borderTop: '2px solid #E3EDF5', borderBottom: '2px solid #E3EDF5', margin: '6px 0' }}
         >
           <strong>Ganancia Bruta</strong>
           <strong className="text-lg" style={{ color: grossProfit >= 0 ? 'var(--success)' : 'var(--danger)' }}>
@@ -136,29 +150,26 @@ export default function Reports() {
           </strong>
         </div>
 
-        <Row label="− Gastos de materia prima" value={formatMoney(rawMaterialExpenses)} color="var(--warning)" />
+        <Row label="− Gastos extraordinarios" value={formatMoney(extraExpenses)} color="var(--warning)" />
 
-        <div className="flex justify-between" style={{ padding: '10px 0', borderTop: '2px solid #EFEBE9', marginTop: 6 }}>
+        <div className="flex justify-between" style={{ padding: '10px 0', borderTop: '2px solid #E3EDF5', marginTop: 6 }}>
           <strong>Ganancia Neta</strong>
           <strong className="text-lg" style={{ color: netProfit >= 0 ? 'var(--success)' : 'var(--danger)' }}>
             {formatMoney(netProfit)}
           </strong>
         </div>
 
-        {rawMaterialExpenses > 0 && (
-          <p className="text-xs text-secondary" style={{ marginTop: 10, lineHeight: 1.4 }}>
-            ⚠️ Si el costo por brownie que registró Perla ya incluye los ingredientes,
-            la <strong>Ganancia Bruta</strong> es el número bueno — la Neta los estaría
-            restando dos veces. Usa Gastos solo para lo que no entra en ese costo
-            (bolsas, transporte, etc.).
-          </p>
-        )}
+        <p className="text-xs text-secondary" style={{ marginTop: 10, lineHeight: 1.4 }}>
+          El costo de producción es lo que te dio Perla por brownie (ingredientes
+          incluidos). Los gastos extraordinarios son aparte: bolsas, transporte,
+          equipo — nada que ya venga en ese costo.
+        </p>
       </div>
 
       {/* Volume */}
       <div className="card">
-        <div className="card-head">
-          <IconCoins size={20} />
+        <div className="flex items-center gap-sm mb-md">
+          <span>💰</span>
           <strong>Ventas</strong>
         </div>
         <Row label="Brownies vendidos" value={`${totalBrownies}`} />
@@ -178,8 +189,8 @@ export default function Reports() {
 
       {/* Profit by flavor */}
       <div className="card">
-        <div className="card-head">
-          <IconPieSlice size={20} />
+        <div className="flex items-center gap-sm mb-md">
+          <span>🥧</span>
           <strong>Ganancia por Sabor</strong>
         </div>
         {soldFlavors.length === 0 ? (
@@ -187,7 +198,7 @@ export default function Reports() {
         ) : (
           <>
             {soldFlavors.map(f => (
-              <div key={f.id} style={{ padding: '8px 0', borderBottom: '1px solid #EFEBE9' }}>
+              <div key={f.id} style={{ padding: '8px 0', borderBottom: '1px solid #E3EDF5' }}>
                 <div className="flex items-center gap-sm" style={{ marginBottom: 6 }}>
                   <span>{f.icon}</span>
                   <span style={{ flex: 1, fontWeight: 700 }}>{f.name}</span>
@@ -210,8 +221,9 @@ export default function Reports() {
               </div>
             ))}
             <p className="text-xs text-secondary" style={{ marginTop: 10 }}>
-              El ingreso se reparte entre los sabores de cada venta según cuántos
-              brownies fueron, porque el 2×$55 aplica al carrito completo.
+              Los sabores con precio fijo cobran su propio precio. El resto se
+              reparte el monto de la promo según cuántos brownies fueron, porque
+              el 2×$50 aplica al conjunto.
             </p>
           </>
         )}

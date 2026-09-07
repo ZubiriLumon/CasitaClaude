@@ -1,0 +1,13 @@
+# Vite fingerprints everything under /assets, so those can be cached forever.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# index.html points at those fingerprinted files. If a phone holds on to an old
+# copy it keeps loading the old build, so this one must always be revalidated —
+# that is what makes a deploy actually show up on the home-screen app.
+/
+  Cache-Control: public, max-age=0, must-revalidate
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+/manifest.json
+  Cache-Control: public, max-age=0, must-revalidate

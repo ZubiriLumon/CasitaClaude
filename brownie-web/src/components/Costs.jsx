@@ -1,7 +1,6 @@
 import { useState } from 'react'
-import useBrownieStore, { DEFAULT_COST_PER_UNIT } from '../store/useStore'
+import useBrownieStore, { DEFAULT_COST_PER_UNIT, PRICE_PAIR } from '../store/useStore'
 import { playRestockSound, playDeleteSound } from '../services/sounds'
-import { IconChefHat, IconTrash, IconAlert, IconPlus } from './Icons'
 
 function formatMoney(n) {
   return new Intl.NumberFormat('es-MX', {
@@ -9,9 +8,10 @@ function formatMoney(n) {
   }).format(n)
 }
 
-// A brownie sold in the 2×$55 deal averages $27.50, which is the realistic
-// yardstick for margin — almost everything goes out in pairs.
-const REFERENCE_PRICE = 27.5
+// Margin is measured against what a brownie actually fetches in the deal —
+// half the pair price — since nearly everything goes out in pairs. Flavors
+// with their own fixed price are measured against that price instead.
+const DEAL_UNIT_PRICE = PRICE_PAIR / 2
 
 export default function Costs() {
   const flavors = useBrownieStore(s => s.flavors)
@@ -78,9 +78,9 @@ export default function Costs() {
       <div className="card card--accent">
         <div className="flex items-center justify-between mb-md">
           <div className="flex items-center gap-sm">
-            <span style={{ color: 'var(--primary)', display: 'flex' }}><IconChefHat size={26} /></span>
+            <span style={{ fontSize: '1.4rem' }}>👩‍🍳</span>
             <div>
-              <strong className="font-display" style={{ fontSize: '1.05rem' }}>Costos de Producción</strong>
+              <strong>Costos de Producción</strong>
               <p className="text-xs text-secondary">Lo que le costó a Perla hacer cada brownie</p>
             </div>
           </div>
@@ -90,14 +90,15 @@ export default function Costs() {
           </div>
         </div>
         <button className="btn btn--accent btn--sm btn--block" onClick={() => openForm(null)}>
-          <IconPlus size={16} /> Registrar costo
+          ➕ Registrar costo
         </button>
       </div>
 
       {/* Current cost per flavor */}
       {latest.map(({ flavor, entry, costPerUnit }) => {
-        const margin = REFERENCE_PRICE - costPerUnit
-        const marginPct = Math.round((margin / REFERENCE_PRICE) * 100)
+        const refPrice = flavor.fixedPrice > 0 ? flavor.fixedPrice : DEAL_UNIT_PRICE
+        const margin = refPrice - costPerUnit
+        const marginPct = Math.round((margin / refPrice) * 100)
         return (
           <div key={flavor.id} className="card" style={{ borderColor: flavor.color }}>
             <div className="flex items-center justify-between mb-md">
@@ -129,10 +130,12 @@ export default function Costs() {
               className="flex items-center justify-between"
               style={{
                 padding: '8px 10px', borderRadius: 10,
-                background: margin > 0 ? 'rgba(46,125,50,0.08)' : 'rgba(211,47,47,0.08)',
+                background: margin > 0 ? 'rgba(30,142,90,0.08)' : 'rgba(214,69,69,0.08)',
               }}
             >
-              <span className="text-xs text-secondary">Ganas por brownie (a 2×$55)</span>
+              <span className="text-xs text-secondary">
+                Ganas por brownie {flavor.fixedPrice > 0 ? `(a $${flavor.fixedPrice} c/u)` : `(a 2×$${PRICE_PAIR})`}
+              </span>
               <strong className="text-sm" style={{ color: margin > 0 ? 'var(--success)' : 'var(--danger)' }}>
                 {formatMoney(margin)} · {marginPct}%
               </strong>
@@ -159,11 +162,11 @@ export default function Costs() {
               <div
                 key={c.id}
                 className="flex items-center justify-between"
-                style={{ padding: '8px 0', borderBottom: '1px solid #EFEBE9' }}
+                style={{ padding: '8px 0', borderBottom: '1px solid #E3EDF5' }}
               >
                 <div>
                   <span className="text-sm">
-                    {f?.icon || ''} <strong>{f?.name || 'Sabor eliminado'}</strong>
+                    {f?.icon || '🍫'} <strong>{f?.name || 'Sabor eliminado'}</strong>
                   </span>
                   <p className="text-xs text-secondary">
                     {new Date(c.date).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}
@@ -175,10 +178,10 @@ export default function Costs() {
                   <strong className="text-sm">{formatMoney(c.costPerUnit)}</strong>
                   <button
                     onClick={() => setConfirmDelete(c.id)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex' }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}
                     title="Eliminar registro"
                   >
-                    <IconTrash size={16} />
+                    🗑️
                   </button>
                 </div>
               </div>
@@ -191,9 +194,7 @@ export default function Costs() {
       {showForm && (
         <div className="overlay" onClick={() => setShowForm(false)}>
           <div className="modal animate-scale" onClick={e => e.stopPropagation()}>
-            <h3 style={{ marginBottom: 4, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <IconChefHat size={22} /> Registrar Costo
-            </h3>
+            <h3 style={{ marginBottom: 4, fontWeight: 800 }}>👩‍🍳 Registrar Costo</h3>
             <p className="text-xs text-secondary" style={{ marginBottom: 16 }}>
               ¿Cuánto costó hacer este sabor esta vez?
             </p>
@@ -275,7 +276,7 @@ export default function Costs() {
               <div
                 style={{
                   padding: 12, borderRadius: 12, background: '#fff',
-                  border: `2.5px solid ${resolvedCost > 0 ? 'var(--accent)' : '#D7CCC8'}`,
+                  border: `2.5px solid ${resolvedCost > 0 ? 'var(--accent)' : '#C9DCEA'}`,
                 }}
               >
                 <div className="flex justify-between">
@@ -284,12 +285,12 @@ export default function Costs() {
                 </div>
                 {resolvedCost > 0 && (
                   <div className="flex justify-between" style={{ marginTop: 4 }}>
-                    <span className="text-xs text-secondary">Ganancia a 2×$55</span>
+                    <span className="text-xs text-secondary">Ganancia a 2×${PRICE_PAIR}</span>
                     <strong
                       className="text-sm"
-                      style={{ color: REFERENCE_PRICE - resolvedCost > 0 ? 'var(--success)' : 'var(--danger)' }}
+                      style={{ color: DEAL_UNIT_PRICE - resolvedCost > 0 ? 'var(--success)' : 'var(--danger)' }}
                     >
-                      {formatMoney(REFERENCE_PRICE - resolvedCost)} por brownie
+                      {formatMoney(DEAL_UNIT_PRICE - resolvedCost)} por brownie
                     </strong>
                   </div>
                 )}
@@ -310,9 +311,7 @@ export default function Costs() {
       {confirmDelete && (
         <div className="overlay" onClick={() => setConfirmDelete(null)}>
           <div className="modal text-center animate-scale" onClick={e => e.stopPropagation()}>
-            <div style={{ color: 'var(--danger)', display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
-              <IconAlert size={42} />
-            </div>
+            <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>⚠️</div>
             <h3 style={{ fontWeight: 800, marginBottom: 8 }}>¿Eliminar este registro?</h3>
             <p className="text-sm text-secondary" style={{ marginBottom: 16 }}>
               Se volverá a usar el costo anterior de ese sabor. Las ventas ya hechas no cambian.
