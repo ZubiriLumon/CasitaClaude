@@ -16,6 +16,8 @@ export default function POS() {
   const completeSale = useBrownieStore(s => s.completeSale)
   const getCartTotal = useBrownieStore(s => s.getCartTotal)
   const flavors = useBrownieStore(s => s.flavors)
+  const getSellProgress = useBrownieStore(s => s.getSellProgress)
+  const progress = getSellProgress()
 
   const [showConfirm, setShowConfirm] = useState(false)
   const [lastTotal, setLastTotal] = useState(0)
@@ -58,8 +60,42 @@ export default function POS() {
         <WavyUnderline width={160} color="#FF8C42" />
       </div>
 
+      {/* How many left before we can go home */}
+      {progress.startedWith > 0 && (
+        <div className={`card ${progress.done ? 'card--success' : 'card--accent'}`}>
+          {progress.done ? (
+            <div className="text-center">
+              <div style={{ fontSize: '2rem' }}>🎉</div>
+              <strong className="text-xl text-success">¡Ya nos podemos ir!</strong>
+              <p className="text-sm text-secondary">Vendiste los {progress.soldToday} de hoy</p>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-end justify-between mb-md">
+                <div>
+                  <p className="text-sm text-secondary">Faltan por vender</p>
+                  <strong className="text-2xl">{progress.remaining}</strong>
+                  <span className="text-sm text-secondary"> brownies</span>
+                </div>
+                <div className="text-center">
+                  <strong className="text-lg">{progress.soldToday}</strong>
+                  <span className="text-sm text-secondary">/{progress.startedWith}</span>
+                  <p className="text-xs text-secondary">vendidos</p>
+                </div>
+              </div>
+              <div className="progress-bar">
+                <div
+                  className="progress-fill"
+                  style={{ width: `${progress.pct}%`, background: 'var(--accent)' }}
+                />
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       {/* Price reminder */}
-      <div className="card card--accent" style={{ padding: '10px 14px' }}>
+      <div className="card card--sm" style={{ padding: '10px 14px' }}>
         <div className="flex items-center justify-between text-sm">
           <span>🏷️ <strong>2 × ${PRICE_PAIR}</strong> · 1 × ${PRICE_SINGLE}</span>
           <span className="text-xs text-secondary">Cheesecake precio fijo</span>

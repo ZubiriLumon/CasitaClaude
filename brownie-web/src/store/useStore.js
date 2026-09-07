@@ -404,6 +404,27 @@ const useBrownieStore = create(
         })
       },
 
+      /**
+       * How the day is going, derived instead of tracked.
+       *
+       * What is left is simply what is in stock, and what started the day is
+       * that plus whatever already sold today. No "load the basket" step to
+       * remember — restocking mid-day raises the target on its own, and a
+       * cancelled sale puts its brownies back on both sides.
+       */
+      getSellProgress: () => {
+        const remaining = Object.values(get().inventory).reduce((s, v) => s + v, 0)
+        const soldToday = get().getTodaySales().reduce((s, sale) => s + sale.totalBrownies, 0)
+        const startedWith = remaining + soldToday
+        return {
+          remaining,
+          soldToday,
+          startedWith,
+          pct: startedWith > 0 ? Math.round((soldToday / startedWith) * 100) : 0,
+          done: startedWith > 0 && remaining === 0,
+        }
+      },
+
       getLowStockFlavors: () => {
         const { inventory, flavors } = get()
         return flavors.filter(f => (inventory[f.id] || 0) < 5)
